@@ -48,6 +48,7 @@ LISTING_WINDOW_MONTHS = 12
 # 部署地址。og:image / og:url 必须是绝对地址，否则微信、Twitter 等抓不到封面图。
 # 上线后把这里改成你的实际域名（不带结尾斜杠），再跑一次 run.cmd。
 SITE_URL = "https://YOUR-DOMAIN.example"
+SITE_URL = "https://boavec.github.io/teci"
 
 # 判定为国内厂商的模型作者
 CN_AUTHORS = {
