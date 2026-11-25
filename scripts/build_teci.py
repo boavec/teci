@@ -511,6 +511,9 @@ def build() -> None:
         sq = SITE_DIR / "og-square.png"
         if sq.exists():
             shutil.copy2(sq, publish_dir / "og-square.png")
+        th = SITE_DIR / "og-thumb.png"
+        if th.exists():
+            shutil.copy2(th, publish_dir / "og-thumb.png")
         standalone_note = "teci-standalone.html + publish/index.html 已生成" + og_note
     else:
         standalone_note = "警告：index.html 里没找到数据脚本占位，单文件版未生成"

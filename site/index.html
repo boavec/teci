@@ -403,6 +403,14 @@
 </style>
 </head>
 <body>
+<!--
+  微信分享卡片会自动抓页面里的第一张大图当缩略图。本页视觉全靠 CSS/SVG，
+  没有普通 <img>，所以这里放一张 300×300 的隐藏图给它抓（微信要求 ≥300×300）。
+  非微信环境看不到它，也不会占版面。
+-->
+<img src="og-thumb.png" alt="" width="300" height="300"
+     style="position:absolute;left:-9999px;top:0;pointer-events:none" aria-hidden="true">
+
 <canvas id="stars" aria-hidden="true"></canvas>
 <div class="wrap">
 

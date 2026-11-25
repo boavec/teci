@@ -113,6 +113,12 @@ def build() -> Path:
 
     OUT.parent.mkdir(parents=True, exist_ok=True)
     img.save(OUT, "PNG", optimize=True)
+
+    # 微信抓取分享缩略图需要页面里有真实的 <img>，且尺寸 ≥300×300。
+    # 这里再输出一张小图，供 index.html 里的隐藏图使用。
+    thumb = ROOT / "site" / "og-thumb.png"
+    img.resize((300, 300), Image.LANCZOS).save(thumb, "PNG", optimize=True)
+    print(f"生成：{thumb.relative_to(ROOT)}  {thumb.stat().st_size/1024:.0f} KB  (300×300)")
     return OUT
 
 
