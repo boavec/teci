@@ -1,13 +1,13 @@
 # 每天抓一次价格、重算指数、部署到 GitHub Pages。
 #
-# 三点设计说明：
-#   1. 只把 data/*.csv 提交回仓库。原始快照 data/raw/ 有 ~1MB/天，
-#      提交一年就是 300MB+，所以它在 .gitignore 里。真正的长期资产是
-#      teci_history.csv（每行一天，约 0.2KB）和 teci_snapshot.csv（当天截面）。
-#   2. 抓取失败不中断：continue-on-error 让构建继续用上一次的快照，
-#      线上至少还是上一版数据，不会因为一次网络抖动变成空白页。
-#   3. 校验不过不部署：test_site.js / check_contrast.py 任何一个失败，
-#      后面部署步骤就不会执行，线上保留上一个可用版本。
+# 顺序上有两处刻意的设计：
+#
+#   1. 部署排在数据提交之前。数据提交要 git push，是唯一可能因远端变化被拒的
+#      步骤（比如刚好有人推了代码，非快进）。它一旦失败会中断整个任务，导致
+#      构建成功却不部署——线上就永远停在旧版本。所以：先部署，再提交，且提交
+#      失败不影响本次结果。
+#   2. 抓取失败不中断。build_teci.py 在没有原始快照时会改用已提交的
+#      data/teci_snapshot.csv 重建，页面顶部会如实显示"数据已 N 天未更新"。
 #
 # 首次使用需要在仓库 Settings → Pages → Source 选择 "GitHub Actions"
 # （不是 "Deploy from a branch"）。
@@ -16,8 +16,7 @@ name: 每日更新并部署
 
 on:
   schedule:
-    # UTC 01:10 = 北京时间 09:10。GitHub 的定时任务可能延迟几分钟到几十分钟。
-    # 仓库只要有提交（本工作流每天都提交数据）就不会因为长期不活跃被停掉。
+    # UTC 01:10 = 北京时间 09:10。GitHub 定时任务可能延迟几分钟到几十分钟。
     - cron: "10 1 * * *"
   push:
     branches: [main]
@@ -49,7 +48,7 @@ jobs:
           python-version: "3.12"
 
       - name: 抓取最新价格
-        # 失败也继续，用已有快照重建
+        # 失败也继续：构建会退回已提交的截面数据
         continue-on-error: true
         run: python scripts/fetch_models.py
 
@@ -61,18 +60,7 @@ jobs:
           node scripts/test_site.js
           python scripts/check_contrast.py
 
-      - name: 提交数据变化
-        run: |
-          git config user.name "teci-bot"
-          git config user.email "teci-bot@users.noreply.github.com"
-          git add data
-          if git diff --cached --quiet; then
-            echo "数据无变化，跳过提交"
-          else
-            git commit -m "data: $(date -u +%F) 自动更新"
-            git push
-          fi
-
+      # ↓↓↓ 先部署：这一步必须跑得到 ↓↓↓
       - name: 配置 Pages
         uses: actions/configure-pages@v5
 
@@ -84,3 +72,17 @@ jobs:
       - name: 部署到 GitHub Pages
         id: deploy
         uses: actions/deploy-pages@v4
+
+      # ↓↓↓ 再记账：失败也不影响已完成的部署 ↓↓↓
+      - name: 提交数据变化
+        continue-on-error: true
+        run: |
+          git config user.name "teci-bot"
+          git config user.email "teci-bot@users.noreply.github.com"
+          git add data
+          if git diff --cached --quiet; then
+            echo "数据无变化，跳过提交"
+          else
+            git commit -m "data: $(date -u +%F) 自动更新"
+            git push
+          fi
