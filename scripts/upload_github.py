@@ -112,9 +112,17 @@ def main() -> int:
     ap.add_argument("--branch", default="main")
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--message", default="chore: 上传 TECI 项目")
+    ap.add_argument("--only", default="", help="只上传这些文件，逗号分隔的相对路径")
     args = ap.parse_args()
 
     files = collect()
+    if args.only.strip():
+        want = {x.strip().replace("\\", "/") for x in args.only.split(",") if x.strip()}
+        files = [f for f in files if f.relative_to(ROOT).as_posix() in want]
+        missing = want - {f.relative_to(ROOT).as_posix() for f in files}
+        if missing:
+            print("未匹配到:", missing, file=sys.stderr)
+            return 2
     total = sum(f.stat().st_size for f in files)
 
     print(f"仓库    : {args.repo}")
