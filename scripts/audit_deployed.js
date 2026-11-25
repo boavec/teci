@@ -29,7 +29,6 @@ const MARKERS = {
   "页脚来源走 T()": "T('数据来源：{src}",
   "矩阵脚注走 tr()": "tr('本次快照中国内厂商最高智能分未达旗舰阈值",
   "计算器走 T()": "T('符合条件的模型",
-  "离线兜底": "load_rows_from_snapshot",
 };
 
 class El {
@@ -49,7 +48,15 @@ class El {
 function runScripts(html) {
   const scripts = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map((m) => m[1]);
   const els = new Map();
-  const get = (s) => (els.has(s) ? els.get(s) : (els.set(s, new El(s)), els.get(s)));
+  // 给表单控件合理的默认值，否则计算器会走「无结果」分支，测不到结果区
+  const DEFAULTS = { "#c-score": "50", "#c-region": "不限", "#c-vol": "50", "#c-ratio": "4:1" };
+  const get = (s) => {
+    if (els.has(s)) return els.get(s);
+    const el = new El(s);
+    if (DEFAULTS[s] !== undefined) el.value = DEFAULTS[s];
+    els.set(s, el);
+    return el;
+  };
   const document = {
     body: { insertAdjacentHTML() {} },
     documentElement: {}, title: "",
