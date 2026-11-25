@@ -1,2 +1,11 @@
-# Auto detect text files and perform LF normalization
-* text=auto
+# 统一换行符，避免 Windows 上反复出现"文件已修改"的假象
+* text=auto eol=lf
+
+# Windows 批处理/PowerShell 脚本需要 CRLF，否则可能执行异常
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# 二进制文件不做换行转换
+*.png binary
+*.docx binary
+*.xlsx binary
