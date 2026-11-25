@@ -216,5 +216,9 @@
  "这不是页面出错，是样本里确实没有更强的选项。我们在方法论文档里说明了国内模型在旗舰档的缺口，没有用调低阈值的方式掩盖它。": "This is not a page error — the sample really has nothing stronger. The methodology documents the domestic gap at flagship tier rather than hiding it by lowering thresholds.",
  "中位价": "Median price",
  "中位分": "Median score",
- "/{a} 评分": "{a} scored"
+ "/{a} 评分": "{a} scored",
+ "{v} · {t} · 智能分 {s} · 单价 {u}/百万 token": "{v} · {t} · score {s} · unit price {u} per million tokens",
+ "/ 月（≈ ¥{c}）": "/ month (≈ ¥{c})",
+ "按 {v} 百万 token/月、输入:输出 = {r} 估算。挂牌价口径，未含企业折扣，也不含 L3 的吞吐与重试损耗。": "Based on {v}M tokens/month at input:output {r}. List-price basis: no enterprise discount, no throughput or retry overhead from L3.",
+ "同条件下最强的是 <b style=\"color:#e9edfb\">{name}</b>（智能分 {score}），月成本 {cost}，<b style=\"color:#fdba74\">贵 {ratio} 倍</b>。": "The strongest under the same conditions is <b style=\"color:#e9edfb\">{name}</b> (score {score}), monthly cost {cost}, <b style=\"color:#fdba74\">{ratio}× more expensive</b>."
 }

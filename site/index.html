@@ -1298,21 +1298,22 @@
     const ratio = b.monthly > 0 ? s.monthly / b.monthly : 0;
 
     out.innerHTML = `
-      <div class="co-head">符合条件的模型 <b>${r.n}</b> 个，这是最便宜的一个</div>
+      <div class="co-head">${T('符合条件的模型 {n} 个，这是最便宜的一个', { n: r.n })}</div>
       <div class="co-pick">
         <div class="co-name">${shortName(b.name)}</div>
-        <div class="co-meta">${b.vendor} · ${b.tier} · 智能分 ${b.score.toFixed(1)} · 单价 ${usd4(b.unit)}/百万 token</div>
+        <div class="co-meta">${T('{v} · {t} · 智能分 {s} · 单价 {u}/百万 token',
+          { v: tr(b.vendor), t: tr(b.tier), s: b.score.toFixed(1), u: usd4(b.unit) })}</div>
         <div class="co-cost">
           <span class="co-num">${usd0(b.monthly)}</span>
-          <span class="co-unit">/ 月（≈ ¥${cny}）</span>
+          <span class="co-unit">${T('/ 月（≈ ¥{c}）', { c: cny })}</span>
         </div>
-        <div class="co-note">按 ${r.opts.volume} 百万 token/月、输入:输出 = ${r.opts.ratio} 估算。
-          挂牌价口径，未含企业折扣，也不含 L3 的吞吐与重试损耗。</div>
+        <div class="co-note">${T('按 {v} 百万 token/月、输入:输出 = {r} 估算。挂牌价口径，未含企业折扣，也不含 L3 的吞吐与重试损耗。',
+          { v: r.opts.volume, r: r.opts.ratio })}</div>
       </div>
-      <div class="co-note" style="margin-top:12px">
-        同条件下最强的是 <b style="color:#e9edfb">${shortName(s.name)}</b>（智能分 ${s.score.toFixed(1)}），
-        月成本 ${usd0(s.monthly)}，<b style="color:#fdba74">贵 ${ratio.toFixed(1)} 倍</b>。
-      </div>
+      <div class="co-note" style="margin-top:12px">${T(
+        '同条件下最强的是 <b style="color:#e9edfb">{name}</b>（智能分 {score}），月成本 {cost}，<b style="color:#fdba74">贵 {ratio} 倍</b>。',
+        { name: shortName(s.name), score: s.score.toFixed(1), cost: usd0(s.monthly), ratio: ratio.toFixed(1) }
+      )}</div>
       <div class="co-alt">
         <table>
           <thead><tr><th>最便宜的前 3 个</th><th>智能分</th><th>单价</th><th>月成本</th></tr></thead>

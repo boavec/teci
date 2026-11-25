@@ -91,7 +91,24 @@ if (document.title && CJK.test(document.title) && !known.has(norm(document.title
   missing.push({ sel: "<title>", t: document.title });
 }
 
-console.log(`英文模式下会残留中文的文本：${missing.length} 条\n`);
+// 统计口径：确认审计确实看过了哪些元素、认出了多少中文片段
+let cjkSeen = 0, cjkOk = 0;
+for (const [, el] of els) {
+  const nodes = [...el._html.matchAll(/(?:^|>)([^<]+)/g)].map((m) => m[1]);
+  for (const raw of nodes) {
+    const t = norm(raw);
+    if (t && CJK.test(t)) { cjkSeen++; if (known.has(t)) cjkOk++; }
+  }
+}
+console.log(`审计范围：${els.size} 个元素，词典 ${known.size} 条`);
+console.log(`含中文片段 ${cjkSeen} 条，可翻译 ${cjkOk} 条，残留 ${missing.length} 条`);
+if (els.has("#calc-out")) {
+  const h = els.get("#calc-out")._html;
+  const frags = [...h.matchAll(/(?:^|>)([^<]+)/g)].map((m) => norm(m[1])).filter((t) => t && CJK.test(t));
+  console.log(`#calc-out 片段：${frags.length} 条${frags.length ? " -> " + frags.slice(0, 2).join(" | ") : "（全英文）"}`);
+}
+
+console.log(`\n英文模式下会残留中文的文本：${missing.length} 条\n`);
 for (const m of missing) {
   console.log(`  ${m.sel.padEnd(14)} ${m.t.slice(0, 90)}${m.t.length > 90 ? "…" : ""}`);
 }
