@@ -199,5 +199,22 @@
  "字节 Seed": "ByteDance Seed",
  "数据源边界：该目录只收录在 OpenRouter 上架的模型。豆包（Doubao，火山引擎直供）等未上架该平台的模型不在样本内，因此本指数不覆盖它们。字节跳动的 Seed 系列在目录内，但尚未取得第三方智能评分，只参与价格统计，不进入性价比排名。": "Source boundary: the catalogue only contains models listed on OpenRouter. Models sold direct through other platforms — Doubao (火山引擎/Volcano Engine) for example — are not in the sample, so this index does not cover them. ByteDance's Seed series is listed, but has no third-party capability score yet, so it counts toward price statistics only and does not enter the value ranking.",
  "样本仅含 OpenRouter 在售模型；豆包等未上架该平台的模型不在内，详见方法论「数据来源」。": "The sample covers only models listed on OpenRouter. Models sold elsewhere — Doubao, for example — are not included; see \"Data source\" in the methodology.",
- "← 左右滑动查看完整图表 →": "← swipe to see the full chart →"
+ "← 左右滑动查看完整图表 →": "← swipe to see the full chart →",
+ "TECI · 词元成本指数": "TECI · Token Cost Index",
+ "数据来源：{src}（原始快照 {file}）": "Source: {src} (raw snapshot {file})",
+ "旗舰档": "Flagship",
+ "中端档": "Mid",
+ "轻量档": "Light",
+ "第三方智能评分 →": "Third-party capability score →",
+ "混合价（USD / 百万 token，对数）": "Blended price (USD per million tokens, log scale)",
+ "按单位智能成本算，国内中位比海外低 <strong>{p}%</strong>。但要注意国内样本的中位智能分也更低，所以这个结论只在\"同分位购买力\"意义下成立，不代表能力更强。": "By cost per capability point, the domestic median is <strong>{p}% lower</strong> than overseas. Note that the domestic median score is also lower, so this only holds as \"purchasing power at the same capability level\" — it does not mean domestic models are stronger.",
+ "按单位智能成本算，国内中位比海外高 <strong>{p}%</strong>。单价便宜不等于单位智能便宜。": "By cost per capability point, the domestic median is <strong>{p}% higher</strong> than overseas. A lower unit price does not mean cheaper capability.",
+ "当前样本": "the current sample",
+ "{r}厂商": "{r} vendors",
+ "{where}里达到智能分 {score} 的模型数为 0。": "{where} contains 0 models scoring {score} or above.",
+ "这里目前的天花板是 <b style=\"color:#e9edfb\">{name}</b>（{vendor}，智能分 {score}）——把门槛降到 {floor} 就能出方案。": "The current ceiling here is <b style=\"color:#e9edfb\">{name}</b> ({vendor}, score {score}) — lower the floor to {floor} to see options.",
+ "这不是页面出错，是样本里确实没有更强的选项。我们在方法论文档里说明了国内模型在旗舰档的缺口，没有用调低阈值的方式掩盖它。": "This is not a page error — the sample really has nothing stronger. The methodology documents the domestic gap at flagship tier rather than hiding it by lowering thresholds.",
+ "中位价": "Median price",
+ "中位分": "Median score",
+ "/{a} 评分": "{a} scored"
 }

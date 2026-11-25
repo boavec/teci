@@ -728,7 +728,17 @@
   // 查不到时按 zh -> en -> 回落原文 的顺序退化，所以缺条目只会显示英文，不会空白。
   const LANGS = ['zh','en'];
   const I18N = (typeof window !== 'undefined' && window.TECI_I18N) || {};
-  const normKey = s => String(s).replace(/\s+/g, ' ').trim();
+  const normKey = s => String(s)
+    .replace(/\s+/g, ' ')
+    .replace(/[\u201c\u201d]/g, '"')   // 弯引号统一成直引号，避免词典与原文对不上
+    .replace(/[\u2018\u2019]/g, "'")
+    .trim();
+
+  const I18N_INDEX = {};
+  Object.keys(I18N).forEach(l => {
+    I18N_INDEX[l] = {};
+    Object.keys(I18N[l] || {}).forEach(k => { I18N_INDEX[l][normKey(k)] = I18N[l][k]; });
+  });
 
   let LANG = 'zh';
   // 两处来源分开 try：URLSearchParams 缺失时不能连 localStorage 也一起跳过
@@ -749,14 +759,22 @@
   function tr(s){
     if (LANG === 'zh') return s;
     const k = normKey(s);
-    const cur = I18N[LANG] && I18N[LANG][k];
+    const cur = I18N_INDEX[LANG] && I18N_INDEX[LANG][k];
     if (cur) return cur;
-    const en = I18N.en && I18N.en[k];
+    const en = I18N_INDEX.en && I18N_INDEX.en[k];
     return en || s;
   }
 
   function setLang(code){
     try { localStorage.setItem('teci-lang', code); } catch(e){}
+    // URL 里的 ?lang= 优先级高于 localStorage。不同步改掉，用户就再也切不回中文。
+    try {
+      const u = new URL(location.href);
+      if (code === 'zh') u.searchParams.delete('lang');
+      else u.searchParams.set('lang', code);
+      location.replace(u.toString());
+      return;
+    } catch(e){}
     try { location.reload(); } catch(e){}
   }
 
@@ -808,6 +826,7 @@
     langSel.addEventListener('change', () => setLang(langSel.value));
   }
   try { document.documentElement.lang = (LANG === 'zh' ? 'zh-CN' : LANG); } catch(e){}
+  try { document.title = tr('TECI · 词元成本指数'); } catch(e){}
 
   const $ = s => document.querySelector(s);
   const usd = x => {
@@ -826,10 +845,11 @@
   $('#m-window').textContent = D.meta.listing_window_months ?? '—';
   $('#f-date').textContent = D.meta.as_of;
   $('#f-n').textContent = D.summary.n_models;
-  $('#f-src').textContent = '数据来源：' + D.meta.source + '（原始快照 ' + D.meta.raw_file + '）';
+  $('#f-src').textContent = T('数据来源：{src}（原始快照 {file}）',
+    { src: D.meta.source, file: D.meta.raw_file });
 
   $('#k-price').innerHTML = usd(D.summary.median_blended_all) + ' <small>/Mtok</small>';
-  $('#k-cpp').innerHTML = usd4(D.summary.median_cost_per_point_all) + ' <small>/点</small>';
+  $('#k-cpp').innerHTML = usd4(D.summary.median_cost_per_point_all) + ' <small>' + tr('/点') + '</small>';
 
   const byId = {};
   D.models.forEach(m => byId[m.id] = m);
@@ -873,8 +893,8 @@
   for(let v=Math.ceil(xmin/10)*10; v<=xmax; v+=10){
     s += `<text x="${X(v)}" y="${M.t+ih+20}" text-anchor="middle">${v}</text>`;
   }
-  s += `<text class="title" x="${M.l+iw/2}" y="${H-8}" text-anchor="middle">第三方智能评分 →</text>`;
-  s += `<text class="title" x="14" y="${M.t+ih/2}" text-anchor="middle" transform="rotate(-90 14 ${M.t+ih/2})">混合价（USD / 百万 token，对数）</text>`;
+  s += `<text class="title" x="${M.l+iw/2}" y="${H-8}" text-anchor="middle">${tr('第三方智能评分 →')}</text>`;
+  s += `<text class="title" x="14" y="${M.t+ih/2}" text-anchor="middle" transform="rotate(-90 14 ${M.t+ih/2})">${tr('混合价（USD / 百万 token，对数）')}</text>`;
   s += `</g>`;
 
   // frontier line
@@ -997,7 +1017,7 @@
     const v = D.tiers[t].median_blended;
     const pct = maxT ? (v/maxT*100) : 0;
     return `<div class="bar-row">
-      <div class="top"><span>${t}档 <span style="color:#7b86a8;font-size:11.5px">n=${D.tiers[t].n}</span></span>
+      <div class="top"><span>${tr(t + '档')} <span style="color:#7b86a8;font-size:11.5px">n=${D.tiers[t].n}</span></span>
       <span>${usd(v)}</span></div>
       <div class="track"><div class="fill" style="width:${pct}%;background:${c};color:${c};opacity:.9"></div></div>
     </div>`;
@@ -1019,10 +1039,8 @@
   if(dc && oo){
     const diff = (1 - dc/oo) * 100;
     $('#region-note').innerHTML = diff > 0
-      ? `按单位智能成本算，国内中位比海外低 <strong>${diff.toFixed(0)}%</strong>。
-         但要注意国内样本的中位智能分也更低，所以这个结论只在"同分位购买力"意义下成立，不代表能力更强。`
-      : `按单位智能成本算，国内中位比海外高 <strong>${(-diff).toFixed(0)}%</strong>。
-         单价便宜不等于单位智能便宜。`;
+      ? T('按单位智能成本算，国内中位比海外低 <strong>{p}%</strong>。但要注意国内样本的中位智能分也更低，所以这个结论只在"同分位购买力"意义下成立，不代表能力更强。', { p: diff.toFixed(0) })
+      : T('按单位智能成本算，国内中位比海外高 <strong>{p}%</strong>。单价便宜不等于单位智能便宜。', { p: (-diff).toFixed(0) });
   }
 
   // ---------- table ----------
@@ -1040,9 +1058,9 @@
     document.querySelector('#tbl tbody').innerHTML = rows.map(m=>`
       <tr>
         <td><span class="name">${m.name.replace(/^[^:]+:\s*/,'')}</span>${D.frontier.includes(m.id)?'<span class="star">★</span>':''}</td>
-        <td>${m.vendor}</td>
-        <td><span class="tag ${m.region==='国内'?'cn':'ov'}">${m.region}</span></td>
-        <td><span class="tag ${tierCls[m.tier]}">${m.tier}</span></td>
+        <td>${tr(m.vendor)}</td>
+        <td><span class="tag ${m.region==='国内'?'cn':'ov'}">${tr(m.region)}</span></td>
+        <td><span class="tag ${tierCls[m.tier]}">${tr(m.tier)}</span></td>
         <td>${usd(m.blended)}</td>
         <td>${usd(m.usd_out)}</td>
         <td>${m.score==null?'—':m.score.toFixed(1)}</td>
@@ -1116,7 +1134,7 @@
           <td>≥ ${c.threshold}</td>
           <td>${nm(c)}${D.frontier.includes(c.id) ? '<span class="star">★</span>' : ''}</td>
           <td>${c.vendor}</td>
-          <td><span class="tag ${c.region === '国内' ? 'cn' : 'ov'}">${c.region}</span></td>
+          <td><span class="tag ${c.region === '国内' ? 'cn' : 'ov'}">${tr(c.region)}</span></td>
           <td>${usd(c.blended)}</td>
           <td>${c.score.toFixed(1)}</td>
           <td>${c.cost_per_point ? usd4(c.cost_per_point) : '—'}</td>
@@ -1133,9 +1151,9 @@
       <th style="text-align:left">最低价型号</th><th>该型号混合价</th>
     </tr></thead><tbody>` +
     (D.vendors || []).map(v => `<tr>
-      <td>${v.vendor}</td>
-      <td><span class="tag ${v.region === '国内' ? 'cn' : 'ov'}">${v.region}</span></td>
-      <td>${v.n}${v.n_scored ? ` <span style="color:#8b95b5;font-size:11px">/${v.n_scored} 评分</span>` : ''}</td>
+      <td>${tr(v.vendor)}</td>
+      <td><span class="tag ${v.region === '国内' ? 'cn' : 'ov'}">${tr(v.region)}</span></td>
+      <td>${v.n}${v.n_scored ? ` <span style="color:#8b95b5;font-size:11px">${T('/{a} 评分', { a: v.n_scored })}</span>` : ''}</td>
       <td>${usd(v.median_blended)}</td>
       <td>${v.median_score == null ? '—' : v.median_score}</td>
       <td>${v.median_cost_per_point == null ? '—' : usd4(v.median_cost_per_point)}</td>
@@ -1173,10 +1191,10 @@
   // 国内旗舰档为空时要说清楚，免得被当成数据错误
   const notes = [];
   if (!cellOf('国内', '旗舰').n) {
-    notes.push('本次快照中国内厂商最高智能分未达旗舰阈值（55），因此"国内 × 旗舰"为空——这是样本结构，不是漏数。');
+    notes.push(tr('本次快照中国内厂商最高智能分未达旗舰阈值（55），因此"国内 × 旗舰"为空——这是样本结构，不是漏数。'));
   }
   if (!cellOf('国内', '未评级').n) {
-    notes.push('"未评级"指第三方尚未给出智能分，只参与价格统计。');
+    notes.push(tr('"未评级"指第三方尚未给出智能分，只参与价格统计。'));
   }
   if (notes.length) $('#matrix-note').textContent = notes.join(' ');
 
@@ -1261,15 +1279,17 @@
     if (!r.n) {
       const c = r.ceiling;
       const where = r.opts.region === "不限" ? "" : r.opts.region;
-      out.innerHTML = `<div class="co-head">没有满足这个条件的模型。</div>
-        <div class="co-note">${where ? where + "厂商" : "当前样本"}里达到智能分
-          ${r.opts.minScore} 的模型数为 0。` +
-        (c ? `这里目前的天花板是 <b style="color:#e9edfb">${shortName(c.name)}</b>
-          （${c.vendor}，智能分 ${c.score.toFixed(1)}）——把门槛降到 ${Math.floor(c.score)} 就能出方案。`
-           : "") +
-        `</div>
-        <div class="co-note">这不是页面出错，是样本里确实没有更强的选项。
-          我们在方法论文档里说明了国内模型在旗舰档的缺口，没有用调低阈值的方式掩盖它。</div>`;
+      const whereTxt = r.opts.region === '不限'
+        ? tr('当前样本')
+        : T('{r}厂商', { r: tr(r.opts.region) });
+      out.innerHTML =
+        `<div class="co-head">${tr('没有满足这个条件的模型。')}</div>` +
+        `<div class="co-note">${T('{where}里达到智能分 {score} 的模型数为 0。', { where: whereTxt, score: r.opts.minScore })}` +
+        (c ? T('这里目前的天花板是 <b style="color:#e9edfb">{name}</b>（{vendor}，智能分 {score}）——把门槛降到 {floor} 就能出方案。',
+               { name: shortName(c.name), vendor: tr(c.vendor), score: c.score.toFixed(1), floor: Math.floor(c.score) }) : '') +
+        `</div><div class="co-note">` +
+        tr('这不是页面出错，是样本里确实没有更强的选项。我们在方法论文档里说明了国内模型在旗舰档的缺口，没有用调低阈值的方式掩盖它。') +
+        `</div>`;
       return;
     }
 
