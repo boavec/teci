@@ -1,0 +1,1377 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#06060f">
+<meta name="description" content="TECI 词元成本指数：用公开挂牌价与第三方评测分数，算出买到一分 AI 智能要花多少钱，并给出按能力门槛筛选的最便宜方案。方法全程公开。">
+<meta property="og:title" content="TECI · 词元成本指数">
+<meta property="og:description" content="买到一分 AI 智能要花多少钱？公开数据、公开方法论、每日更新。">
+<meta property="og:type" content="website">
+<!--
+  分享卡片图片必须是**绝对地址**，多数平台不认相对路径。
+  部署后把 build_teci.py 里的 SITE_URL 改成你的实际域名（例如 https://teci.cn），
+  重新跑一次 run.cmd，下面的 __SITE_URL__ 就会被替换掉。
+-->
+<meta property="og:url" content="__SITE_URL__/">
+<meta property="og:image" content="__SITE_URL__/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:site_name" content="TECI 词元成本指数">
+<meta property="og:locale" content="zh_CN">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="__SITE_URL__/og.png">
+<title>TECI · 词元成本指数</title>
+<style>
+  :root{
+    --space:#06060f;
+    --ink:#eef1fb;
+    --muted:#aab4cf;
+    --faint:#8b95b5;
+    --line:rgba(255,255,255,.09);
+    --line-soft:rgba(255,255,255,.055);
+    --cn:#2dd4bf;      /* 国内 · 青 */
+    --ov:#c084fc;      /* 海外 · 紫 */
+    --glow-cn:rgba(45,212,191,.55);
+    --glow-ov:rgba(192,132,252,.55);
+    --card:linear-gradient(160deg,rgba(255,255,255,.062),rgba(255,255,255,.018));
+  }
+  *{box-sizing:border-box}
+  html{scrollbar-color:rgba(255,255,255,.18) transparent}
+  ::selection{background:rgba(139,92,246,.42);color:#fff}
+
+  body{
+    margin:0;color:var(--ink);
+    font-family:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;
+    line-height:1.6;-webkit-font-smoothing:antialiased;
+    background-color:var(--space);
+    background-image:
+      radial-gradient(1200px 820px at 12% -10%, rgba(99,102,241,.32), transparent 62%),
+      radial-gradient(900px 720px at 90% 0%, rgba(168,85,247,.26), transparent 64%),
+      radial-gradient(1000px 900px at 80% 92%, rgba(236,72,153,.17), transparent 66%),
+      radial-gradient(880px 700px at 4% 96%, rgba(34,211,238,.13), transparent 64%);
+    background-attachment:fixed;
+    background-repeat:no-repeat;
+  }
+
+  /* 星场 */
+  #stars{
+    position:fixed;inset:0;width:100%;height:100%;z-index:0;
+    pointer-events:none;opacity:.9;
+  }
+
+  .wrap{position:relative;z-index:1;max-width:1080px;margin:0 auto;padding:0 24px 80px}
+
+  header{padding:64px 0 30px;border-bottom:1px solid var(--line);position:relative}
+  header::after{
+    content:"";position:absolute;left:0;right:0;bottom:-1px;height:1px;
+    background:linear-gradient(90deg,transparent,rgba(139,92,246,.75),rgba(34,211,238,.65),transparent);
+  }
+  .kicker{
+    font-size:11.5px;letter-spacing:.3em;text-transform:uppercase;
+    color:#a5b4fc;font-weight:600;
+  }
+  h1{
+    font-size:42px;line-height:1.1;margin:12px 0 10px;letter-spacing:-.025em;font-weight:700;
+    background:linear-gradient(100deg,#f0f4ff 0%,#c4b5fd 38%,#67e8f9 68%,#f0abfc 100%);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+  }
+  h1 span{
+    font-weight:300;font-size:21px;letter-spacing:.01em;
+    -webkit-text-fill-color:rgba(238,241,251,.72);
+  }
+  .sub{color:var(--muted);font-size:15px;max-width:680px;margin:0}
+  .meta{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px;font-size:12.5px;color:var(--muted)}
+  .pill{
+    background:rgba(255,255,255,.045);border:1px solid var(--line);
+    border-radius:999px;padding:5px 13px;backdrop-filter:blur(8px)
+  }
+  .pill b{color:var(--ink);font-weight:600}
+
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin:34px 0 12px}
+  .kpi{
+    position:relative;background:var(--card);border:1px solid var(--line);
+    border-radius:16px;padding:20px 20px 18px;backdrop-filter:blur(14px);
+    box-shadow:0 10px 40px rgba(0,0,0,.38), inset 0 1px 0 rgba(255,255,255,.06);
+    overflow:hidden;transition:transform .18s ease, border-color .18s ease;
+  }
+  .kpi::before{
+    content:"";position:absolute;top:0;left:0;right:0;height:1px;
+    background:linear-gradient(90deg,transparent,rgba(139,92,246,.85),rgba(34,211,238,.85),transparent);
+    opacity:.75;
+  }
+  .kpi:hover{transform:translateY(-2px);border-color:rgba(255,255,255,.17)}
+  .kpi .lab{font-size:12.5px;color:var(--muted);font-weight:500}
+  .kpi .val{
+    font-size:27px;font-weight:700;letter-spacing:-.02em;margin-top:7px;
+    font-variant-numeric:tabular-nums;
+    background:linear-gradient(180deg,#ffffff,#c9d2f2);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+  }
+  .kpi .val small{
+    font-size:12.5px;font-weight:500;letter-spacing:0;
+    -webkit-text-fill-color:var(--faint);
+  }
+  .kpi .hint{font-size:12px;color:var(--faint);margin-top:6px}
+
+  section{margin:50px 0}
+  h2{font-size:20px;font-weight:650;margin:0 0 8px;letter-spacing:-.01em}
+  .lead{color:var(--muted);font-size:14px;margin:0 0 18px;max-width:780px}
+  .card{
+    background:var(--card);border:1px solid var(--line);border-radius:16px;padding:24px;
+    backdrop-filter:blur(14px);box-shadow:0 10px 44px rgba(0,0,0,.34), inset 0 1px 0 rgba(255,255,255,.05);
+  }
+
+  .legend{display:flex;gap:22px;font-size:12.5px;color:var(--muted);margin-bottom:10px;flex-wrap:wrap}
+  .legend i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:7px;vertical-align:1px}
+  .legend .glow-cn{box-shadow:0 0 9px var(--glow-cn)}
+  .legend .glow-ov{box-shadow:0 0 9px var(--glow-ov)}
+
+  svg{display:block;width:100%;height:auto;overflow:visible}
+  .grid line{stroke:rgba(255,255,255,.055);stroke-width:1}
+  .axis text{fill:#8b95b5;font-size:11.5px}
+  .axis .title{fill:#7b86a8;font-size:11px;letter-spacing:.05em}
+  .pt{cursor:pointer;transition:r .12s ease}
+  .pt:hover{r:9.5}
+  .plabel{
+    font-size:10.5px;fill:#c3cdec;pointer-events:none;
+    /* 深色描边垫底，标签压在曲线上也不会糊 */
+    paint-order:stroke;stroke:rgba(6,6,15,.88);stroke-width:3px;stroke-linejoin:round
+  }
+  .plabel-cn{
+    font-size:10px;fill:#6ee7b7;
+    paint-order:stroke;stroke:rgba(6,6,15,.88);stroke-width:3px;stroke-linejoin:round
+  }
+  .front-line{
+    stroke:url(#frontGrad);stroke-width:1.6;stroke-dasharray:5 4;fill:none;
+    filter:drop-shadow(0 0 4px rgba(167,139,250,.55));
+  }
+  .front-line-cn{
+    stroke:#2dd4bf;stroke-width:1.8;fill:none;opacity:.92;
+    filter:drop-shadow(0 0 5px rgba(45,212,191,.65));
+  }
+
+  #tip{
+    position:fixed;pointer-events:none;z-index:50;max-width:250px;
+    background:rgba(12,12,26,.94);color:#eef1fb;border:1px solid rgba(255,255,255,.14);
+    border-radius:10px;padding:9px 12px;font-size:12px;line-height:1.55;
+    opacity:0;transition:opacity .1s;
+    box-shadow:0 10px 34px rgba(0,0,0,.6), 0 0 0 1px rgba(139,92,246,.16);
+    backdrop-filter:blur(10px);
+  }
+  #tip b{color:#fff;font-weight:600}
+  #tip .m{color:var(--faint)}
+
+  .twocol{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .bars{display:flex;flex-direction:column;gap:16px;margin-top:8px}
+  .bar-row{font-size:13px}
+  .bar-row .top{display:flex;justify-content:space-between;margin-bottom:6px}
+  .bar-row .top span:last-child{font-variant-numeric:tabular-nums;color:var(--muted)}
+  .track{height:9px;background:rgba(255,255,255,.06);border-radius:5px;overflow:hidden}
+  .fill{height:100%;border-radius:5px;box-shadow:0 0 14px currentColor}
+
+  .cmp{width:100%;border-collapse:collapse;font-size:13.5px}
+  .cmp th{
+    text-align:left;font-weight:600;color:var(--muted);font-size:11.5px;
+    padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap;
+    letter-spacing:.04em;text-transform:uppercase
+  }
+  .cmp td{padding:10px;border-bottom:1px solid var(--line-soft);font-variant-numeric:tabular-nums}
+  .cmp td.k{color:var(--muted);font-variant-numeric:normal}
+  .cmp tr:last-child td{border-bottom:none}
+
+  table.models{width:100%;border-collapse:collapse;font-size:13px}
+  table.models th{
+    position:sticky;top:0;z-index:2;text-align:right;font-weight:600;font-size:11.5px;
+    color:var(--muted);padding:11px 8px;border-bottom:1px solid var(--line);cursor:pointer;
+    white-space:nowrap;user-select:none;letter-spacing:.03em;
+    background:rgba(9,9,22,.94);backdrop-filter:blur(10px);
+  }
+  table.models th:first-child,table.models th:nth-child(2){text-align:left}
+  table.models th:hover{color:var(--ink)}
+  table.models th.sorted{color:#c4b5fd}
+  table.models th.sorted::after{content:" ↓";font-size:10px}
+  table.models th.sorted.asc::after{content:" ↑"}
+  table.models td{
+    padding:9px 8px;border-bottom:1px solid var(--line-soft);text-align:right;
+    font-variant-numeric:tabular-nums
+  }
+  table.models td:first-child,table.models td:nth-child(2){text-align:left;font-variant-numeric:normal}
+  table.models tbody tr{transition:background .12s ease}
+  table.models tr:hover td{background:rgba(139,92,246,.085)}
+  .tag{display:inline-block;font-size:10.5px;padding:2px 8px;border-radius:5px;font-weight:600;line-height:1.55}
+  .tag.cn{background:rgba(45,212,191,.15);color:#5eead4;box-shadow:inset 0 0 0 1px rgba(45,212,191,.22)}
+  .tag.ov{background:rgba(192,132,252,.16);color:#d8b4fe;box-shadow:inset 0 0 0 1px rgba(192,132,252,.24)}
+  .tag.t-flagship{background:rgba(251,146,60,.15);color:#fdba74;box-shadow:inset 0 0 0 1px rgba(251,146,60,.2)}
+  .tag.t-mid{background:rgba(129,140,248,.16);color:#a5b4fc;box-shadow:inset 0 0 0 1px rgba(129,140,248,.22)}
+  .tag.t-light{background:rgba(52,211,153,.14);color:#6ee7b7;box-shadow:inset 0 0 0 1px rgba(52,211,153,.2)}
+  .tag.t-none{background:rgba(255,255,255,.07);color:var(--muted);box-shadow:inset 0 0 0 1px rgba(255,255,255,.08)}
+  .name{font-weight:500}
+  .star{color:#fbbf24;font-size:11px;margin-left:5px;text-shadow:0 0 8px rgba(251,191,36,.7)}
+
+  details{
+    background:var(--card);border:1px solid var(--line);border-radius:16px;
+    padding:0 24px;margin-top:16px;backdrop-filter:blur(14px);
+    box-shadow:0 10px 40px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.05);
+  }
+  details summary{
+    cursor:pointer;padding:20px 0;font-weight:600;font-size:15px;
+    list-style:none;display:flex;justify-content:space-between;align-items:center
+  }
+  details summary::-webkit-details-marker{display:none}
+  details summary::after{content:"＋";color:var(--faint);font-weight:400}
+  details[open] summary::after{content:"－"}
+  details .body{
+    padding-bottom:24px;border-top:1px solid var(--line-soft);
+    font-size:13.5px;color:#c2cbe6
+  }
+  details h3{font-size:13.5px;margin:22px 0 6px;color:var(--ink);letter-spacing:.01em}
+  details p{margin:6px 0}
+  details ul{margin:6px 0;padding-left:20px}
+  details li{margin:4px 0}
+  details a{color:#7dd3fc}
+  code{
+    background:rgba(139,92,246,.14);padding:2px 6px;border-radius:5px;font-size:12.5px;
+    font-family:ui-monospace,Consolas,monospace;color:#ddd6fe
+  }
+  .formula{
+    background:rgba(34,211,238,.06);border-left:3px solid #22d3ee;
+    padding:12px 16px;margin:12px 0;border-radius:0 8px 8px 0;
+    font-family:ui-monospace,Consolas,monospace;font-size:12.5px;overflow-x:auto;color:#a5f3fc
+  }
+
+  footer{
+    margin-top:60px;padding-top:24px;border-top:1px solid var(--line);
+    color:var(--faint);font-size:12px
+  }
+  footer p{margin:6px 0}
+  .note{font-size:12.5px;color:var(--faint);margin-top:12px}
+
+  /* 长表格限高滚动，保持页面紧凑；sticky 表头在这个容器里生效 */
+  .scroll-box{max-height:560px;overflow:auto;border-radius:10px}
+  .scroll-box::-webkit-scrollbar{width:8px;height:8px}
+  .scroll-box::-webkit-scrollbar-thumb{background:rgba(255,255,255,.16);border-radius:4px}
+
+  /* 语言选择器：右上角 */
+  .lang-bar{
+    position:absolute;top:16px;right:24px;z-index:20;
+    display:flex;align-items:center;gap:8px;
+    background:rgba(255,255,255,.05);border:1px solid var(--line);
+    border-radius:999px;padding:5px 10px 5px 12px;backdrop-filter:blur(10px);
+  }
+  .lang-bar .globe{font-size:13px;opacity:.75;line-height:1}
+  .lang-bar select{
+    appearance:none;-webkit-appearance:none;
+    background:transparent;border:none;color:var(--muted);
+    font-family:inherit;font-size:12.5px;padding:2px 16px 2px 2px;cursor:pointer;
+    background-image:linear-gradient(45deg,transparent 50%,var(--faint) 50%),
+                     linear-gradient(135deg,var(--faint) 50%,transparent 50%);
+    background-position:right 4px center,right 1px center;
+    background-size:4px 4px,4px 4px;background-repeat:no-repeat;
+  }
+  .lang-bar select:hover{color:var(--ink)}
+  .lang-bar select:focus{outline:none;color:var(--ink)}
+  .lang-bar select option{background:#12121f;color:#eef1fb}
+
+  @media(max-width:620px){
+    .lang-bar{position:static;margin:16px 0 0;justify-self:start;width:max-content}
+  }
+
+  /* 手机端：宽图表/宽表格改成横向滑动，保持真实宽度，字号不被压缩 */
+  .chart-scroll{overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch}
+  .chart-hint{display:none;font-size:12px;color:var(--faint);margin:10px 0 0;text-align:center}
+  @media(max-width:820px){
+    .chart-scroll svg{min-width:900px}
+    .chart-hint{display:block}
+    table.models{min-width:660px}
+    #matrix-tbl{min-width:760px}
+  }
+  /* 结论区：给普通用户的"看完就走"层 */
+  .verdict{margin:34px 0 0}
+  .vlead{
+    font-size:15px;line-height:1.75;color:#d3dcf2;
+    background:rgba(139,92,246,.10);
+    border:1px solid rgba(139,92,246,.28);
+    border-left:3px solid #8b5cf6;
+    border-radius:0 12px 12px 0;padding:16px 20px;
+  }
+  .vlead b{color:#fff;font-weight:650}
+  .vgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:16px}
+  .vcard{
+    position:relative;border-radius:16px;padding:20px;
+    background:linear-gradient(160deg,rgba(139,92,246,.16),rgba(34,211,238,.06));
+    border:1px solid rgba(255,255,255,.13);
+    box-shadow:0 12px 42px rgba(0,0,0,.42), inset 0 1px 0 rgba(255,255,255,.09);
+    transition:transform .18s ease, border-color .18s ease;
+  }
+  .vcard:hover{transform:translateY(-2px);border-color:rgba(167,139,250,.45)}
+  .vlab{
+    font-size:11px;letter-spacing:.14em;color:#b3bdf8;font-weight:700;text-transform:uppercase
+  }
+  .vname{font-size:17px;font-weight:650;margin-top:9px;color:#fff;line-height:1.35}
+  .vnum{
+    font-size:25px;font-weight:700;margin-top:2px;font-variant-numeric:tabular-nums;
+    background:linear-gradient(180deg,#ffffff,#b9c6ee);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+  }
+  .vnum small{font-size:12px;font-weight:500;-webkit-text-fill-color:var(--faint);letter-spacing:0}
+  .vhint{font-size:12px;color:var(--faint);margin-top:7px;line-height:1.55}
+
+  .pill.warn{
+    background:rgba(251,146,60,.16);border-color:rgba(251,146,60,.45);color:#fdba74;font-weight:600
+  }
+
+  /* 静态表格：不排序 */
+  table.models.static th{cursor:default}
+  table.models.static th:hover{color:var(--muted)}
+  table.models.static th::after{content:none !important}
+  table.models.plain td:first-child{text-align:left;font-variant-numeric:tabular-nums}
+
+  /* 广告位：必须显著标注，且与榜单区域物理隔离 */
+  .ad-zone{
+    margin-top:26px;display:flex;gap:16px;align-items:center;flex-wrap:wrap;
+    border:1px dashed rgba(255,255,255,.17);border-radius:14px;
+    background:rgba(255,255,255,.022);padding:18px 20px;
+  }
+  .ad-tag{
+    font-size:10px;letter-spacing:.2em;padding:3px 9px;border-radius:5px;
+    background:rgba(255,255,255,.1);color:var(--muted);font-weight:700;flex:none;
+  }
+  .ad-body{flex:1;min-width:240px}
+  .ad-title{font-size:14px;font-weight:600;color:#c9d3ee}
+  .ad-sub{font-size:12px;color:var(--faint);margin-top:3px}
+  .ad-link{
+    font-size:12.5px;color:#7dd3fc;text-decoration:none;flex:none;
+    border-bottom:1px dotted rgba(125,211,252,.5);padding-bottom:1px
+  }
+  .ad-link:hover{color:#a5f3fc}
+
+  /* 采购计算器 */
+  .calc{display:grid;grid-template-columns:300px 1fr;gap:26px;align-items:start}
+  .calc-field{margin-bottom:14px}
+  .calc-field label{display:block;font-size:12.5px;color:var(--muted);margin-bottom:6px}
+  .calc-field select,.calc-field input{
+    width:100%;background:rgba(255,255,255,.05);border:1px solid var(--line);
+    color:var(--ink);border-radius:9px;padding:9px 11px;font-size:13.5px;
+    font-family:inherit;transition:border-color .15s ease
+  }
+  .calc-field select:focus,.calc-field input:focus{
+    outline:none;border-color:rgba(167,139,250,.7)
+  }
+  .calc-field select option{background:#12121f;color:#eef1fb}
+  .co-head{font-size:13px;color:var(--muted)}
+  .co-head b{color:#fff;font-size:15px}
+  .co-pick{
+    margin-top:14px;padding:16px 18px;border-radius:12px;
+    background:linear-gradient(150deg,rgba(45,212,191,.13),rgba(139,92,246,.09));
+    border:1px solid rgba(45,212,191,.26)
+  }
+  .co-name{font-size:18px;font-weight:650;color:#fff}
+  .co-meta{font-size:12.5px;color:var(--muted);margin-top:4px}
+  .co-cost{margin-top:10px;font-variant-numeric:tabular-nums}
+  .co-num{
+    font-size:28px;font-weight:700;
+    background:linear-gradient(180deg,#fff,#a7f3d0);
+    -webkit-background-clip:text;background-clip:text;color:transparent
+  }
+  .co-unit{font-size:12.5px;color:var(--faint);margin-left:6px}
+  .co-note{font-size:12px;color:var(--faint);margin-top:8px;line-height:1.6}
+  .co-alt{margin-top:14px}
+  .co-alt table{width:100%;border-collapse:collapse;font-size:12.5px}
+  .co-alt th{
+    text-align:right;font-weight:600;color:var(--muted);font-size:11px;
+    padding:6px 8px;border-bottom:1px solid var(--line-soft)
+  }
+  .co-alt th:first-child{text-align:left}
+  .co-alt td{
+    padding:7px 8px;border-bottom:1px solid var(--line-soft);
+    text-align:right;font-variant-numeric:tabular-nums
+  }
+  .co-alt td:first-child{text-align:left;font-variant-numeric:normal}
+
+  @media(max-width:820px){
+    .calc{grid-template-columns:1fr}
+  }
+
+  @media(max-width:820px){
+    .kpis{grid-template-columns:repeat(2,1fr)}
+    .twocol{grid-template-columns:1fr}
+    .vgrid{grid-template-columns:1fr}
+    h1{font-size:31px}
+    header{padding-top:44px}
+  }
+</style>
+</head>
+<body>
+<canvas id="stars" aria-hidden="true"></canvas>
+<div class="wrap">
+
+<div class="lang-bar">
+  <span class="globe" aria-hidden="true">🌐</span>
+  <select id="lang-select" aria-label="Language" title="Language / 语言">
+    <option value="zh">中文</option>
+    <option value="en">English</option>
+  </select>
+</div>
+
+<header>
+  <div class="kicker">Token Effective Cost Index</div>
+  <h1>TECI <span>· 词元成本指数</span></h1>
+  <p class="sub">衡量"买到一分 AI 智能要花多少钱"。价格来自各厂商公开挂牌价，能力分来自第三方独立评测，
+     用同一把尺子把不同厂商、不同档位的模型拉到一起比较。</p>
+  <div class="meta">
+    <span class="pill">数据日期 <b id="m-date">—</b></span>
+    <span class="pill">样本 <b id="m-n">—</b> 个模型</span>
+    <span class="pill">有第三方评分 <b id="m-ns">—</b> 个</span>
+    <span class="pill">口径 v<b id="m-ver">—</b></span>
+    <span class="pill">覆盖层级 <b>L1 + L2</b></span>
+    <span class="pill">准入窗口 <b id="m-window">—</b> 个月</span>
+    <span class="pill warn" id="stale" style="display:none"></span>
+  </div>
+</header>
+
+<!--
+  广告位暂时关闭：先让数据跑一段时间、攒出可信度和访问量，再谈变现。
+
+  恢复方式：把下面这几行取消注释即可（CSS 里的 .ad-zone / .ad-tag 等样式仍然保留着）。
+  卖出后把 <div class="ad-body"> 里的内容换成对方素材，例如：
+    <a href="https://广告主的落地页" rel="nofollow sponsored" target="_blank">
+      <img src="ad/xxx.png" alt="广告主名称" style="max-width:100%;height:auto">
+    </a>
+  三条硬性要求：
+    1) "广告"标识不能去掉（《互联网广告管理办法》要求显著标明）
+    2) rel="nofollow sponsored" 必须保留
+    3) 不要把这个位挪进任何榜单/表格区域内，否则会毁掉指数的独立性
+
+  <section class="ad-zone" id="ad-slot">
+    <div class="ad-tag">广告</div>
+    <div class="ad-body">
+      <div class="ad-title">此广告位招租</div>
+      <div class="ad-sub">面向 AI 采购决策者的垂类读者 · 全站单一位 · 非竞价</div>
+    </div>
+    <a class="ad-link" href="mailto:you@example.com">投放咨询 →</a>
+  </section>
+-->
+
+<section class="verdict">
+  <div class="vlead" id="vlead">正在计算当前最优选择…</div>
+  <div class="vgrid">
+    <article class="vcard">
+      <div class="vlab">日常最划算</div>
+      <div class="vname" id="v-value-name">—</div>
+      <div class="vnum" id="v-value-num">—</div>
+      <div class="vhint" id="v-value-hint"></div>
+    </article>
+    <article class="vcard">
+      <div class="vlab">单价最低</div>
+      <div class="vname" id="v-cheap-name">—</div>
+      <div class="vnum" id="v-cheap-num">—</div>
+      <div class="vhint" id="v-cheap-hint"></div>
+    </article>
+    <article class="vcard">
+      <div class="vlab">能力最强</div>
+      <div class="vname" id="v-strong-name">—</div>
+      <div class="vnum" id="v-strong-num">—</div>
+      <div class="vhint" id="v-strong-hint"></div>
+    </article>
+  </div>
+</section>
+
+<div class="kpis">
+  <div class="kpi">
+    <div class="lab">L1 · 中位混合价</div>
+    <div class="val" id="k-price">—</div>
+    <div class="hint">每 100 万 token，输入:输出 = 4:1 加权</div>
+  </div>
+  <div class="kpi">
+    <div class="lab">L2 · 中位每智能点成本</div>
+    <div class="val" id="k-cpp">—</div>
+    <div class="hint">混合价 ÷ 智能分，越低越划算</div>
+  </div>
+  <div class="kpi">
+    <div class="lab">性价比最优</div>
+    <div class="val" id="k-best" style="font-size:17px;line-height:1.35">—</div>
+    <div class="hint">全样本单位智能成本最低</div>
+  </div>
+  <div class="kpi">
+    <div class="lab">档位价差</div>
+    <div class="val" id="k-gap">—</div>
+    <div class="hint" id="k-gap-hint">旗舰档 ÷ 轻量档</div>
+  </div>
+</div>
+
+<section>
+  <h2>性价比前沿：同样的钱，谁能买到更多智能</h2>
+  <p class="lead">横轴是第三方智能评分，纵轴是混合价（对数刻度）。虚线是<strong>全球前沿</strong>——
+     在每个价格点上能力最强的那批模型；实线是<strong>国内前沿</strong>，只看国内厂商，
+     并按智能分标注了国内前 10 名。两条线各自走到哪里，就是"国产替代"目前能做到什么程度。</p>
+  <div class="card">
+    <div class="legend">
+      <span><i class="glow-cn" style="background:#2dd4bf"></i>国内厂商</span>
+      <span><i class="glow-ov" style="background:#c084fc"></i>海外厂商</span>
+      <span><i style="background:linear-gradient(90deg,#a78bfa,#67e8f9);border-radius:1px;height:2px;width:16px;vertical-align:4px"></i>全球前沿</span>
+      <span><i style="background:#2dd4bf;border-radius:1px;height:2px;width:16px;vertical-align:4px"></i>国内前沿</span>
+    </div>
+    <div class="chart-scroll">
+      <svg id="scatter" viewBox="0 0 1000 470" role="img" aria-label="模型价格与智能分散点图"></svg>
+    </div>
+    <p class="chart-hint">← 左右滑动查看完整图表 →</p>
+  </div>
+  <p class="note" id="scatter-note"></p>
+</section>
+
+<section>
+  <h2>我至少要 X 分，最便宜的在哪</h2>
+  <p class="lead">机构采购的真实问法通常不是"哪个最便宜"，而是"满足能力下限的前提下最便宜"。
+     这张表把每个能力门槛下最划算的选择直接点出来，省掉自己筛选的时间。</p>
+  <div class="card" style="padding:6px 14px">
+    <div class="scroll-box"><table class="models static plain" id="cap-tbl"></table></div>
+  </div>
+</section>
+
+<section id="buy">
+  <h2>算一下你的采购成本</h2>
+  <p class="lead">填入能力下限和月用量，直接用当前数据算出最便宜的达标方案和预估账单。
+     本页不联网、不上传任何数据，所有计算都在你的浏览器里完成。</p>
+  <div class="card">
+    <div class="calc">
+      <div class="calc-inputs">
+        <div class="calc-field">
+          <label for="c-score">最低智能分</label>
+          <select id="c-score">
+            <option value="0">不限</option>
+            <option value="30">≥ 30（基础问答）</option>
+            <option value="40">≥ 40（日常生产）</option>
+            <option value="50" selected>≥ 50（较难任务）</option>
+            <option value="55">≥ 55（旗舰）</option>
+            <option value="60">≥ 60（最强一档）</option>
+          </select>
+        </div>
+        <div class="calc-field">
+          <label for="c-region">地区偏好</label>
+          <select id="c-region">
+            <option value="不限" selected>不限</option>
+            <option value="国内">仅国内厂商</option>
+            <option value="海外">仅海外厂商</option>
+          </select>
+        </div>
+        <div class="calc-field">
+          <label for="c-vol">月用量（百万 token）</label>
+          <input id="c-vol" type="number" min="1" step="10" value="50">
+        </div>
+        <div class="calc-field">
+          <label for="c-ratio">输入 : 输出</label>
+          <select id="c-ratio">
+            <option value="4:1" selected>4 : 1（对话为主）</option>
+            <option value="2:1">2 : 1</option>
+            <option value="1:1">1 : 1</option>
+            <option value="1:3">1 : 3（推理/生成密集）</option>
+          </select>
+        </div>
+      </div>
+      <div class="calc-out" id="calc-out">正在计算…</div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>按厂商看</h2>
+  <p class="lead">做供应商短名单时用这张。中位值按该厂商在售模型聚合，"最低价型号"是它当前最便宜的入口。
+     样本不足的厂商中位数参考价值有限，已标注模型数。</p>
+  <div class="card" style="padding:6px 14px">
+    <div class="scroll-box">
+      <table class="models static plain" id="vendor-tbl"></table>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>国内 vs 海外：拆到档位</h2>
+  <p class="lead">只看地区汇总会被样本结构误导。拆到档位之后，才能看出差距究竟出在哪一档。</p>
+  <div class="twocol">
+    <div class="card">
+      <div style="font-size:13.5px;font-weight:600;margin-bottom:2px">分档位中位混合价</div>
+      <div style="font-size:12.5px;color:var(--faint);margin-bottom:16px">USD / 百万 token</div>
+      <div class="bars" id="tier-bars"></div>
+    </div>
+    <div class="card">
+      <div style="font-size:13.5px;font-weight:600;margin-bottom:2px">国内 vs 海外</div>
+      <div style="font-size:12.5px;color:var(--faint);margin-bottom:14px">中位数对比</div>
+      <table class="cmp" id="region-cmp"></table>
+      <p class="note" id="region-note"></p>
+    </div>
+  </div>
+  <div class="card" style="padding:6px 14px;margin-top:16px">
+    <div class="scroll-box"><table class="models static plain" id="matrix-tbl"></table></div>
+  </div>
+  <p class="note" id="matrix-note"></p>
+  <p class="note">样本仅含 OpenRouter 在售模型；豆包等未上架该平台的模型不在内，详见方法论「数据来源」。</p>
+</section>
+
+<section>
+  <h2>全样本明细</h2>
+  <p class="lead">点击表头可排序。<span class="star">★</span> 标记的是性价比前沿上的模型。
+     "未评级"指第三方尚未给出智能分，只参与价格统计，不参与性价比排名。</p>
+  <div class="card" style="padding:6px 14px">
+    <div class="scroll-box">
+      <table class="models" id="tbl">
+        <thead><tr>
+          <th data-k="name">模型</th>
+          <th data-k="vendor">厂商</th>
+          <th data-k="region">地区</th>
+          <th data-k="tier">档位</th>
+          <th data-k="blended">混合价</th>
+          <th data-k="usd_out">输出价</th>
+          <th data-k="score">智能分</th>
+          <th data-k="cost_per_point" class="sorted">每点成本</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<details open>
+  <summary>方法论与口径（必读）</summary>
+  <div class="body">
+    <h3>为什么需要这个指数</h3>
+    <p>市面上已有的算力指数量的都是 <code>$/GPU-小时</code>，那是供给侧的机器租金。
+       但企业买 AI 不是在租机器，是在买 token。同一张卡，换个模型或换个推理框架，
+       交付同样工作量所需的成本能差好几倍。所以需要一把针对 token 的尺子。</p>
+
+    <h3>L1 · 挂牌价指数</h3>
+    <div class="formula">混合价 = (4 × 输入价 + 1 × 输出价) / 5&nbsp;&nbsp;（USD / 百万 token）</div>
+    <p>4:1 是典型对话负载的输入输出 token 结构。这个权重是口径的一部分，改它必须升版本号。
+       指数取档位内<strong>中位数</strong>而非均值，避免个别极端定价或促销价把整体带偏。</p>
+    <p><strong>注意：</strong>未被第三方评分的模型仍计入 L1，而它们占了样本的大多数。
+       所以 L1 中位数很大程度上反映的是"尚未评级那批模型"的价格水平，不是一个"好用模型"的价格。
+       要判断性价比请看 L2。</p>
+
+    <h3>L2 · 单位智能成本</h3>
+    <div class="formula">每智能点成本 = 混合价 ÷ 第三方智能分</div>
+    <p>这是"买到一分智能要花多少钱"。它解决了 L1 的一个致命缺陷：贵模型通常更强，
+       单看价格会误判性价比。</p>
+    <p><strong>已知局限：</strong>把能力分当作可除的基数，隐含"能力可线性度量"的假设；
+       而智能分本质上是序数指标，不是基数。因此 <strong>L2 只在同档位内比较有效，
+       不做跨档位的绝对解读</strong>。这一条我们不会为了图表好看而略过。</p>
+
+    <h3>样本规则</h3>
+    <ul>
+      <li>只纳入<strong>最近 12 个月上市</strong>、且未标注下线日期的模型。理由：本指数回答的是"现在买哪家最实惠"，
+          混入 2023 年的退役型号会让"最便宜"变成一个没人用的选项，也会破坏不同时期的可比性</li>
+      <li>剔除 <code>:free</code> 促销免费档与 <code>:batch</code> 批量档——它们不是同一件商品</li>
+      <li>剔除价格缺失或为 0 的条目</li>
+      <li>档位划分：智能分 ≥55 旗舰，≥40 中端，&lt;40 轻量</li>
+      <li>无第三方评分的模型计入 L1，不计入 L2</li>
+    </ul>
+
+    <h3>尚未启用的层级</h3>
+    <p><strong>L3 · 有效成本指数</strong>：用标准化负载实测吞吐、首字延迟与重试率，
+       折算成"交付 100 万有效输出 token 的真实全成本"。这是本指数最终要去的方向，
+       但需要持续付费跑基准测试，当前版本未启用。在它上线之前，
+       本页所有数字都<strong>不代表真实可用成本</strong>，只是挂牌价口径。</p>
+
+    <h3>修订与连续性</h3>
+    <p>口径一经发布不追溯修改。要改口径就发新版本指数，旧序列冻结。
+       每次运行都会在 <code>data/teci_history.csv</code> 追加一行，时间序列由此长出来。</p>
+
+    <h3>数据来源</h3>
+    <p>价格与能力分：<a href="https://openrouter.ai/api/v1/models">OpenRouter 公开模型目录</a>，
+       其中智能分由 Artificial Analysis 提供。本页不自行抓取厂商定价页，
+       也不对厂商口径做二次解释。</p>
+    <p>数据源边界：该目录只收录在 OpenRouter 上架的模型。豆包（Doubao，火山引擎直供）等未上架该平台的模型不在样本内，因此本指数不覆盖它们。字节跳动的 Seed 系列在目录内，但尚未取得第三方智能评分，只参与价格统计，不进入性价比排名。</p>
+  </div>
+</details>
+
+<details>
+  <summary>这个指数能拿来做什么</summary>
+  <div class="body">
+    <ul>
+      <li><strong>采购比价</strong>：判断某家报价是否偏离市场，而不是只看绝对价格</li>
+      <li><strong>降本复盘</strong>：同一任务换模型后，单位智能成本是升还是降</li>
+      <li><strong>国产替代测算</strong>：把"便宜但略弱"和"贵但更强"放在同一坐标里看</li>
+      <li><strong>趋势观察</strong>：等历史序列攒够，可看"智能的通胀/通缩"</li>
+    </ul>
+    <p style="margin-top:12px"><strong>不适合用来做什么：</strong>不构成投资建议，
+       不能作为衍生品或合约的结算基准。若真有机构想拿它做基准，需要走正式的指数授权与审计流程，
+       届时口径与治理必须重新设计——这一步远比做一个网页难。</p>
+  </div>
+</details>
+
+<footer>
+  <p><strong>TECI v0.1</strong> · 数据日期 <span id="f-date">—</span> · 共 <span id="f-n">—</span> 个模型样本</p>
+  <p id="f-src">数据来源：OpenRouter /api/v1/models</p>
+  <p>本页为公开数据整理与方法论演示，不构成投资建议、不构成任何形式的报价或承诺。挂牌价与实际成交价存在差异，
+     厂商有权随时调价。使用前请自行复核原始数据。</p>
+  <!--
+    ICP 备案号：备案通过后，把下面的 hidden 去掉，并把 placeholder 换成你的真实备案号。
+    管局要求备案号在网站底部展示并可跳转到 beian.miit.gov.cn，别忘。
+  -->
+  <p id="beian" hidden>备案号：<a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener">京ICP备00000000号</a></p>
+</footer>
+</div>
+
+<div id="tip"></div>
+
+<script src="data/i18n.js"></script>
+<script src="data/teci.js"></script>
+<script>
+(function(){
+  const D = window.TECI_DATA;
+  if(!D){ document.body.insertAdjacentHTML('afterbegin',
+    '<div style="padding:20px;background:#3b0716;color:#fecdd3">数据文件未加载：请先运行 scripts/build_teci.py 生成 site/data/teci.js</div>'); return; }
+
+  const C = {cn:'#2dd4bf', ov:'#c084fc'};
+
+  // ---------- 多语言 ----------
+  // 词典以中文原文为 key，构建时把 site/i18n/*.json 合并注入成 window.TECI_I18N。
+  // 查不到时按 zh -> en -> 回落原文 的顺序退化，所以缺条目只会显示英文，不会空白。
+  const LANGS = ['zh','en'];
+  const I18N = (typeof window !== 'undefined' && window.TECI_I18N) || {};
+  const normKey = s => String(s).replace(/\s+/g, ' ').trim();
+
+  let LANG = 'zh';
+  // 两处来源分开 try：URLSearchParams 缺失时不能连 localStorage 也一起跳过
+  (function pickLang(){
+    const valid = v => LANGS.indexOf(v) >= 0;
+    try {
+      if (typeof URLSearchParams === 'function' && typeof location !== 'undefined' && location.search) {
+        const q = new URLSearchParams(location.search).get('lang');
+        if (q && valid(q)) { LANG = q; return; }
+      }
+    } catch(e){}
+    try {
+      const saved = localStorage.getItem('teci-lang');
+      if (saved && valid(saved)) LANG = saved;
+    } catch(e){}
+  })();
+
+  function tr(s){
+    if (LANG === 'zh') return s;
+    const k = normKey(s);
+    const cur = I18N[LANG] && I18N[LANG][k];
+    if (cur) return cur;
+    const en = I18N.en && I18N.en[k];
+    return en || s;
+  }
+
+  function setLang(code){
+    try { localStorage.setItem('teci-lang', code); } catch(e){}
+    try { location.reload(); } catch(e){}
+  }
+
+  // 带占位符的句子：tr('共 {n} 个模型') -> '12 models'
+  function T(tpl, vars){
+    let out = tr(tpl);
+    if (vars) Object.keys(vars).forEach(k => {
+      out = out.split('{' + k + '}').join(String(vars[k]));
+    });
+    return out;
+  }
+
+  // 静态文本按原文匹配替换；跳过脚本、代码块和语言选择器本身
+  function translateDom(){
+    if (LANG === 'zh') return;
+    if (typeof document.createTreeWalker !== 'function') return;
+    const skipTag = {SCRIPT:1, STYLE:1, CODE:1, CANVAS:1, TEXTAREA:1};
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
+      acceptNode(n){
+        if (!n.nodeValue || !n.nodeValue.trim()) return NodeFilter.FILTER_REJECT;
+        let p = n.parentNode;
+        while (p && p !== document.body){
+          if (p.nodeType === 1){
+            if (skipTag[p.tagName]) return NodeFilter.FILTER_REJECT;
+            if (p.classList && p.classList.contains('lang-bar')) return NodeFilter.FILTER_REJECT;
+            if (p.id === 'beian') return NodeFilter.FILTER_REJECT;
+          }
+          p = p.parentNode;
+        }
+        return NodeFilter.FILTER_ACCEPT;
+      }
+    });
+    const nodes = [];
+    while (walker.nextNode()) nodes.push(walker.currentNode);
+    nodes.forEach(n => {
+      const raw = n.nodeValue;
+      const k = normKey(raw);
+      const v = tr(k);
+      if (v === k) return;
+      const m = raw.match(/^(\s*)([\s\S]*?)(\s*)$/);
+      n.nodeValue = m[1] + v + m[3];
+    });
+  }
+
+  const langSel = (typeof document.getElementById === 'function')
+    ? document.getElementById('lang-select') : null;
+  if (langSel){
+    langSel.value = LANG;
+    langSel.addEventListener('change', () => setLang(langSel.value));
+  }
+  try { document.documentElement.lang = (LANG === 'zh' ? 'zh-CN' : LANG); } catch(e){}
+
+  const $ = s => document.querySelector(s);
+  const usd = x => {
+    if(x==null) return '—';
+    if(x < 0.01) return '$' + x.toFixed(4);
+    if(x < 1)    return '$' + x.toFixed(3);
+    return '$' + x.toFixed(2);
+  };
+  const usd4 = x => x==null ? '—' : '$' + x.toFixed(4);
+
+  // ---------- meta ----------
+  $('#m-date').textContent = D.meta.as_of;
+  $('#m-n').textContent = D.summary.n_models;
+  $('#m-ns').textContent = D.summary.n_scored;
+  $('#m-ver').textContent = D.meta.version;
+  $('#m-window').textContent = D.meta.listing_window_months ?? '—';
+  $('#f-date').textContent = D.meta.as_of;
+  $('#f-n').textContent = D.summary.n_models;
+  $('#f-src').textContent = '数据来源：' + D.meta.source + '（原始快照 ' + D.meta.raw_file + '）';
+
+  $('#k-price').innerHTML = usd(D.summary.median_blended_all) + ' <small>/Mtok</small>';
+  $('#k-cpp').innerHTML = usd4(D.summary.median_cost_per_point_all) + ' <small>/点</small>';
+
+  const byId = {};
+  D.models.forEach(m => byId[m.id] = m);
+  const best = byId[D.summary.best_value];
+  $('#k-best').textContent = best ? best.name.replace(/^[^:]+:\s*/,'') : '—';
+
+  const fl = D.tiers['旗舰'].median_blended, li = D.tiers['轻量'].median_blended;
+  if(fl && li){ $('#k-gap').innerHTML = (fl/li).toFixed(1) + '<small>×</small>'; }
+
+  // ---------- scatter ----------
+  const W=1000,H=470, M={l:66,r:30,t:18,b:54};
+  const iw=W-M.l-M.r, ih=H-M.t-M.b;
+  const pts = D.models.filter(m=>m.score!=null);
+  const xmin=0, xmax=Math.max(70, Math.ceil(Math.max(...pts.map(p=>p.score))/10)*10);
+  const ymin=0.04, ymax=Math.max(20, Math.ceil(Math.max(...pts.map(p=>p.blended))));
+  const X = v => M.l + (v-xmin)/(xmax-xmin)*iw;
+  const Y = v => M.t + ih - (Math.log10(v)-Math.log10(ymin))/(Math.log10(ymax)-Math.log10(ymin))*ih;
+
+  let s = `<defs>
+    <linearGradient id="frontGrad" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0%" stop-color="#c084fc"/>
+      <stop offset="55%" stop-color="#a78bfa"/>
+      <stop offset="100%" stop-color="#67e8f9"/>
+    </linearGradient>
+  </defs>`;
+
+  s += '<g class="grid">';
+  [0.05,0.1,0.2,0.5,1,2,5,10,20].filter(v=>v>=ymin&&v<=ymax).forEach(v=>{
+    s += `<line x1="${M.l}" y1="${Y(v)}" x2="${M.l+iw}" y2="${Y(v)}"/>`;
+  });
+  for(let v=Math.ceil(xmin/10)*10; v<=xmax; v+=10){
+    s += `<line x1="${X(v)}" y1="${M.t}" x2="${X(v)}" y2="${M.t+ih}"/>`;
+  }
+  s += '</g>';
+
+  // axis labels
+  s += `<g class="axis">`;
+  [0.05,0.1,0.2,0.5,1,2,5,10,20].filter(v=>v>=ymin&&v<=ymax).forEach(v=>{
+    s += `<text x="${M.l-10}" y="${Y(v)+4}" text-anchor="end">$${v}</text>`;
+  });
+  for(let v=Math.ceil(xmin/10)*10; v<=xmax; v+=10){
+    s += `<text x="${X(v)}" y="${M.t+ih+20}" text-anchor="middle">${v}</text>`;
+  }
+  s += `<text class="title" x="${M.l+iw/2}" y="${H-8}" text-anchor="middle">第三方智能评分 →</text>`;
+  s += `<text class="title" x="14" y="${M.t+ih/2}" text-anchor="middle" transform="rotate(-90 14 ${M.t+ih/2})">混合价（USD / 百万 token，对数）</text>`;
+  s += `</g>`;
+
+  // frontier line
+  const front = D.frontier.map(id=>byId[id]).filter(Boolean).sort((a,b)=>a.blended-b.blended);
+  if(front.length>1){
+    s += '<polyline class="front-line" points="' +
+      front.map(p=>`${X(p.score)},${Y(p.blended)}`).join(' ') + '"/>';
+  }
+
+  // 国内前沿曲线（和全球前沿对照：国内更便宜，但止步于中端）
+  const frontCn = (D.frontier_cn || []).map(id=>byId[id]).filter(Boolean)
+    .sort((a,b)=>a.blended-b.blended);
+  if(frontCn.length>1){
+    s += '<polyline class="front-line-cn" points="' +
+      frontCn.map(p=>`${X(p.score)},${Y(p.blended)}`).join(' ') + '"/>';
+  }
+
+  // points
+  pts.forEach(p=>{
+    const isF = D.frontier.includes(p.id);
+    const col = p.region==='国内' ? C.cn : C.ov;
+    const cx = X(p.score), cy = Y(p.blended);
+    if(isF){
+      s += `<circle cx="${cx}" cy="${cy}" r="14" fill="${col}" opacity="0.14"/>`;
+      s += `<circle cx="${cx}" cy="${cy}" r="8.5" fill="${col}" opacity="0.22"/>`;
+    }
+    s += `<circle class="pt" data-id="${p.id}" cx="${cx}" cy="${cy}" r="${isF?6.2:4.8}"
+      fill="${col}" fill-opacity="${isF?1:.85}"
+      stroke="${isF?'#ffffff':'#0a0a1a'}" stroke-width="${isF?1.7:1.6}"/>`;
+  });
+
+  // 标签：全球前沿 + 国内前 10，贪心避让，尽量不叠在一起
+  const FS = 10.5, LH = 12;
+  const estW = (txt) => {
+    let w = 0;
+    for (const ch of txt) w += /[\u4e00-\u9fff]/.test(ch) ? FS : FS * 0.56;
+    return w;
+  };
+  const B = { x0: M.l + 2, x1: M.l + iw - 2, y0: M.t + 2, y1: M.t + ih - 2 };
+  const placed = [];
+  // 数据点也当障碍物：标签压在自己的点上会看不清
+  const obstacles = pts.map(p => {
+    const cx = X(p.score), cy = Y(p.blended), r = 7.5;
+    return { x0: cx - r, y0: cy - r, x1: cx + r, y1: cy + r };
+  });
+  const ovl = (a, b) =>
+    Math.max(0, Math.min(a.x1, b.x1) - Math.max(a.x0, b.x0)) *
+    Math.max(0, Math.min(a.y1, b.y1) - Math.max(a.y0, b.y0));
+  const CAND = [
+    [9, -9, "start"], [-9, -9, "end"], [9, 13, "start"], [-9, 13, "end"],
+    [0, -11, "middle"], [0, 16, "middle"],
+    [13, -19, "start"], [-13, 20, "end"], [0, -24, "middle"], [0, 29, "middle"],
+    [20, 4, "start"], [-20, 4, "end"],
+  ];
+
+  const labelItems = [];
+  front.forEach(p => labelItems.push({ p, cls: "plabel" }));
+  const labeled = new Set(front.map(p => p.id));
+  (D.top_cn || []).map(id => byId[id]).filter(Boolean)
+    .filter(p => !labeled.has(p.id))
+    .forEach(p => labelItems.push({ p, cls: "plabel plabel-cn" }));
+
+  labelItems.forEach(it => {
+    const px = X(it.p.score), py = Y(it.p.blended);
+    const txt = it.p.name.replace(/^[^:]+:\s*/, "");
+    const w = estW(txt);
+    let best = null, bestCost = Infinity;
+    for (const [dx, dy, anchor] of CAND) {
+      const x0 = anchor === "start" ? px + dx : anchor === "end" ? px + dx - w : px + dx - w / 2;
+      const y0 = py + dy - LH;
+      const box = { x0, y0, x1: x0 + w, y1: y0 + LH };
+      // 距离越近越好：标签离自己的点太远就认不出来了
+      let cost = Math.hypot(dx, dy) * 0.6;
+      if (box.x0 < B.x0) cost += (B.x0 - box.x0) * 60;
+      if (box.x1 > B.x1) cost += (box.x1 - B.x1) * 60;
+      if (box.y0 < B.y0) cost += (B.y0 - box.y0) * 60;
+      if (box.y1 > B.y1) cost += (box.y1 - B.y1) * 60;
+      for (const pb of placed) cost += ovl(box, pb) * 4;
+      for (const ob of obstacles) cost += ovl(box, ob) * 1.3;
+      if (cost < bestCost) { bestCost = cost; best = { box, dx, dy, anchor }; }
+    }
+    if (!best) return;
+    placed.push(best.box);
+    s += `<text class="${it.cls}" x="${px + best.dx}" y="${py + best.dy}" text-anchor="${best.anchor}">${txt}</text>`;
+  });
+
+  $('#scatter').innerHTML = s;
+
+  const cnTop = (D.top_cn || []).map(id => byId[id]).filter(Boolean);
+  const cnMax = cnTop.length ? Math.max(...cnTop.map(p => p.score)) : 0;
+  const gMax = front.length ? Math.max(...front.map(p => p.score)) : 0;
+  $('#scatter-note').textContent =
+    T('共 {a} 个有第三方评分的模型进入本图；另有 {b} 个尚无评分，只参与价格统计。',
+      { a: pts.length, b: D.summary.n_models - pts.length }) + ' ' +
+    T('全球前沿 {a} 个模型，国内前沿 {b} 个。', { a: front.length, b: frontCn.length }) + ' ' +
+    T('国内智能分最高的 {a} 个已全部标注（其中同时位于全球前沿的不重复标注）。', { a: cnTop.length }) + ' ' +
+    T('国内最高 {a} 分，全球前沿最高 {b} 分。', { a: cnMax.toFixed(1), b: gMax.toFixed(1) }) + ' ' +
+    tr('纵轴为对数刻度：同样的垂直距离代表同样的倍数差异，而非同样的美元差额。');
+
+  // tooltip
+  const tip = $('#tip');
+  document.querySelectorAll('.pt').forEach(el=>{
+    el.addEventListener('mousemove', ev=>{
+      const m = byId[el.dataset.id];
+      tip.innerHTML = `<b>${m.name}</b><br><span class="m">${m.vendor} · ${m.tier} · ${m.region}</span><br>` +
+        `混合价 <b>${usd(m.blended)}</b><br>智能分 <b>${m.score}</b><br>每点成本 <b>${usd4(m.cost_per_point)}</b>`;
+      tip.style.opacity = 1;
+      let x = ev.clientX+14, y = ev.clientY+14;
+      if(x+250 > window.innerWidth) x = ev.clientX-250;
+      if(y+110 > window.innerHeight) y = ev.clientY-110;
+      tip.style.left = x+'px'; tip.style.top = y+'px';
+    });
+    el.addEventListener('mouseleave', ()=>{ tip.style.opacity = 0; });
+  });
+
+  // ---------- tier bars ----------
+  const tiers = [['旗舰','#fb923c'],['中端','#818cf8'],['轻量','#34d399']];
+  const maxT = Math.max(...tiers.map(([t])=>D.tiers[t].median_blended||0));
+  $('#tier-bars').innerHTML = tiers.map(([t,c])=>{
+    const v = D.tiers[t].median_blended;
+    const pct = maxT ? (v/maxT*100) : 0;
+    return `<div class="bar-row">
+      <div class="top"><span>${t}档 <span style="color:#7b86a8;font-size:11.5px">n=${D.tiers[t].n}</span></span>
+      <span>${usd(v)}</span></div>
+      <div class="track"><div class="fill" style="width:${pct}%;background:${c};color:${c};opacity:.9"></div></div>
+    </div>`;
+  }).join('');
+
+  // ---------- region compare ----------
+  const R = D.regions;
+  const rows = [
+    ['样本数', R['国内'].n, R['海外'].n],
+    ['中位混合价', usd(R['国内'].median_blended), usd(R['海外'].median_blended)],
+    ['中位智能分', R['国内'].median_score ?? '—', R['海外'].median_score ?? '—'],
+    ['中位每点成本', usd4(R['国内'].median_cost_per_point), usd4(R['海外'].median_cost_per_point)]
+  ];
+  $('#region-cmp').innerHTML =
+    `<thead><tr><th style="text-align:left">指标</th><th style="text-align:right">国内</th><th style="text-align:right">海外</th></tr></thead><tbody>` +
+    rows.map(r=>`<tr><td class="k">${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td></tr>`).join('') + `</tbody>`;
+
+  const dc = R['国内'].median_cost_per_point, oo = R['海外'].median_cost_per_point;
+  if(dc && oo){
+    const diff = (1 - dc/oo) * 100;
+    $('#region-note').innerHTML = diff > 0
+      ? `按单位智能成本算，国内中位比海外低 <strong>${diff.toFixed(0)}%</strong>。
+         但要注意国内样本的中位智能分也更低，所以这个结论只在"同分位购买力"意义下成立，不代表能力更强。`
+      : `按单位智能成本算，国内中位比海外高 <strong>${(-diff).toFixed(0)}%</strong>。
+         单价便宜不等于单位智能便宜。`;
+  }
+
+  // ---------- table ----------
+  let sortKey='cost_per_point', asc=true;
+  function render(){
+    const rows = D.models.slice().sort((a,b)=>{
+      let x=a[sortKey], y=b[sortKey];
+      if(x==null && y==null) return 0;
+      if(x==null) return 1;
+      if(y==null) return -1;
+      if(typeof x==='string') return asc ? x.localeCompare(y,'zh') : y.localeCompare(x,'zh');
+      return asc ? x-y : y-x;
+    });
+    const tierCls = {'旗舰':'t-flagship','中端':'t-mid','轻量':'t-light','未评级':'t-none'};
+    document.querySelector('#tbl tbody').innerHTML = rows.map(m=>`
+      <tr>
+        <td><span class="name">${m.name.replace(/^[^:]+:\s*/,'')}</span>${D.frontier.includes(m.id)?'<span class="star">★</span>':''}</td>
+        <td>${m.vendor}</td>
+        <td><span class="tag ${m.region==='国内'?'cn':'ov'}">${m.region}</span></td>
+        <td><span class="tag ${tierCls[m.tier]}">${m.tier}</span></td>
+        <td>${usd(m.blended)}</td>
+        <td>${usd(m.usd_out)}</td>
+        <td>${m.score==null?'—':m.score.toFixed(1)}</td>
+        <td>${m.cost_per_point==null?'—':usd4(m.cost_per_point)}</td>
+      </tr>`).join('');
+    translateDom();
+    document.querySelectorAll('#tbl th').forEach(th=>{
+      th.classList.remove('sorted','asc');
+      if(th.dataset.k===sortKey){ th.classList.add('sorted'); if(asc) th.classList.add('asc'); }
+    });
+  }
+  document.querySelectorAll('#tbl th').forEach(th=>{
+    th.addEventListener('click', ()=>{
+      const k = th.dataset.k;
+      if(k===sortKey) asc = !asc; else { sortKey=k; asc = (k==='name'||k==='vendor'||k==='region'||k==='tier'); }
+      render();
+    });
+  });
+  render();
+
+  // ---------- 结论区：给普通用户的直接答案 ----------
+  const P = D.picks || {};
+  const nm = m => m ? m.name.replace(/^[^:]+:\s*/, '') : '—';
+  const bv = P.best_value, ch = P.cheapest, st = P.strongest;
+
+  if (bv) {
+    $('#v-value-name').textContent = nm(bv);
+    $('#v-value-num').innerHTML = usd4(bv.cost_per_point) + ' <small>' + tr('/点') + '</small>';
+    $('#v-value-hint').textContent =
+      T('{v} · 智能分 {s} · 混合价 {p}', { v: tr(bv.vendor), s: bv.score, p: usd(bv.blended) });
+  }
+  if (ch) {
+    $('#v-cheap-name').textContent = nm(ch);
+    $('#v-cheap-num').innerHTML = usd(ch.blended) + ' <small>/Mtok</small>';
+    $('#v-cheap-hint').textContent =
+      T('{v} · {t} · 每点成本 {c}', {
+        v: tr(ch.vendor), t: tr(ch.tier),
+        c: ch.cost_per_point ? usd4(ch.cost_per_point) : '—'
+      });
+  }
+  if (st) {
+    $('#v-strong-name').textContent = nm(st);
+    $('#v-strong-num').innerHTML = st.score.toFixed(1) + ' <small>' + tr('分') + '</small>';
+    $('#v-strong-hint').textContent =
+      T('{v} · 混合价 {p} · 每点成本 {c}',
+        { v: tr(st.vendor), p: usd(st.blended), c: usd4(st.cost_per_point) });
+  }
+  if (bv && st && bv.cost_per_point && st.cost_per_point) {
+    const ratio = st.cost_per_point / bv.cost_per_point;
+    $('#vlead').innerHTML =
+      T('现在买 token 最划算的是 <b>{bv}</b>（{bvv}），每分智能 <b>{bc}</b>，混合价 {bp}/百万 token。如果任务必须上最强模型，只能选 <b>{st}</b>（智能分 {ss}），每分智能 <b>{sc}</b>，贵 <b>{r} 倍</b>。', {
+        bv: nm(bv), bvv: tr(bv.vendor), bc: usd4(bv.cost_per_point),
+        bp: usd(bv.blended), st: nm(st), ss: st.score.toFixed(1),
+        sc: usd4(st.cost_per_point), r: ratio.toFixed(0)
+      }) +
+      (ch ? (ch.score != null
+        ? T('预算最紧就选单价最低的 <b>{n}</b>（{p}/百万 token）。', { n: nm(ch), p: usd(ch.blended) })
+        : T('单价最低的是 <b>{n}</b>（{p}/百万 token），但第三方尚未评分，纯看价格选它有风险。', { n: nm(ch), p: usd(ch.blended) })) : '');
+  }
+
+  // ---------- 能力门槛表 ----------
+  const cap = D.capability || [];
+  $('#cap-tbl').innerHTML =
+    `<thead><tr>
+      <th style="text-align:left">能力门槛</th><th style="text-align:left">最便宜达标模型</th>
+      <th style="text-align:left">厂商</th><th style="text-align:left">地区</th>
+      <th>混合价</th><th>智能分</th><th>每点成本</th><th>达标数</th>
+    </tr></thead><tbody>` +
+    cap.map(c => c.n
+      ? `<tr>
+          <td>≥ ${c.threshold}</td>
+          <td>${nm(c)}${D.frontier.includes(c.id) ? '<span class="star">★</span>' : ''}</td>
+          <td>${c.vendor}</td>
+          <td><span class="tag ${c.region === '国内' ? 'cn' : 'ov'}">${c.region}</span></td>
+          <td>${usd(c.blended)}</td>
+          <td>${c.score.toFixed(1)}</td>
+          <td>${c.cost_per_point ? usd4(c.cost_per_point) : '—'}</td>
+          <td>${c.n}</td>
+        </tr>`
+      : `<tr><td>≥ ${c.threshold}</td><td colspan="7" style="text-align:left;color:#8b95b5">本次快照无达标模型</td></tr>`
+    ).join('') + `</tbody>`;
+
+  // ---------- 厂商表 ----------
+  $('#vendor-tbl').innerHTML =
+    `<thead><tr>
+      <th style="text-align:left">厂商</th><th style="text-align:left">地区</th>
+      <th>模型数</th><th>中位混合价</th><th>中位智能分</th><th>中位每点成本</th>
+      <th style="text-align:left">最低价型号</th><th>该型号混合价</th>
+    </tr></thead><tbody>` +
+    (D.vendors || []).map(v => `<tr>
+      <td>${v.vendor}</td>
+      <td><span class="tag ${v.region === '国内' ? 'cn' : 'ov'}">${v.region}</span></td>
+      <td>${v.n}${v.n_scored ? ` <span style="color:#8b95b5;font-size:11px">/${v.n_scored} 评分</span>` : ''}</td>
+      <td>${usd(v.median_blended)}</td>
+      <td>${v.median_score == null ? '—' : v.median_score}</td>
+      <td>${v.median_cost_per_point == null ? '—' : usd4(v.median_cost_per_point)}</td>
+      <td>${nm({ name: v.cheapest_name })}</td>
+      <td>${usd(v.cheapest_blended)}</td>
+    </tr>`).join('') + `</tbody>`;
+
+  // ---------- 区域 × 档位矩阵 ----------
+  const RT = D.region_tier || {};
+  const cellOf = (reg, tier) => RT[`${reg}|${tier}`] || { n: 0 };
+  const cellHtml = d => d.n
+    ? `<td>${d.n}</td><td>${usd(d.median_blended)}</td>` +
+      `<td>${d.median_score == null ? '—' : d.median_score}</td>` +
+      `<td>${d.median_cost_per_point == null ? '—' : usd4(d.median_cost_per_point)}</td>`
+    : `<td>0</td><td>—</td><td>—</td><td>—</td>`;
+
+  $('#matrix-tbl').innerHTML =
+    `<thead>
+      <tr>
+        <th rowspan="2" style="text-align:left;vertical-align:bottom">档位</th>
+        <th colspan="4" style="text-align:center;color:#5eead4">国内</th>
+        <th colspan="4" style="text-align:center;color:#d8b4fe">海外</th>
+      </tr>
+      <tr>
+        <th>样本</th><th>中位价</th><th>中位分</th><th>每点成本</th>
+        <th>样本</th><th>中位价</th><th>中位分</th><th>每点成本</th>
+      </tr>
+    </thead><tbody>` +
+    ['旗舰', '中端', '轻量', '未评级'].map(t => `<tr>
+      <td>${t}</td>
+      ${cellHtml(cellOf('国内', t))}
+      ${cellHtml(cellOf('海外', t))}
+    </tr>`).join('') + `</tbody>`;
+
+  // 国内旗舰档为空时要说清楚，免得被当成数据错误
+  const notes = [];
+  if (!cellOf('国内', '旗舰').n) {
+    notes.push('本次快照中国内厂商最高智能分未达旗舰阈值（55），因此"国内 × 旗舰"为空——这是样本结构，不是漏数。');
+  }
+  if (!cellOf('国内', '未评级').n) {
+    notes.push('"未评级"指第三方尚未给出智能分，只参与价格统计。');
+  }
+  if (notes.length) $('#matrix-note').textContent = notes.join(' ');
+
+  // ---------- 数据时效 ----------
+  try {
+    const asOf = new Date(D.meta.as_of + 'T00:00:00');
+    const days = Math.floor((Date.now() - asOf.getTime()) / 86400000);
+    if (days >= 2) {
+      const el = $('#stale');
+      el.textContent = '⚠ 数据已 ' + days + ' 天未更新';
+      el.style.display = 'inline-flex';
+    }
+  } catch (e) {}
+
+  // ---------- 采购计算器 ----------
+  // ⚠️ 把 CONTACT.email 改成你自己的邮箱；留空或保持示例值，"用邮件发送"会提示先配置
+  const CONTACT = { email: "you@example.com" };
+  // 仅用于展示人民币估算，不代表真实汇率，也不是任何报价
+  const FX = 7.1;
+
+  const getVal = (sel, dflt) => {
+    const el = document.querySelector(sel);
+    const v = el && el.value;
+    return (v === undefined || v === null || v === "") ? dflt : v;
+  };
+
+  function currentOpts() {
+    const ratio = String(getVal("#c-ratio", "4:1"));
+    const parts = ratio.split(":");
+    const a = Number(parts[0]) || 4;
+    const b = Number(parts[1]) || 1;
+    return {
+      minScore: Number(getVal("#c-score", "50")) || 0,
+      region: getVal("#c-region", "不限"),
+      volume: Math.max(1, Number(getVal("#c-vol", "50")) || 50),
+      wIn: a, wOut: b, ratio
+    };
+  }
+
+  // 纯函数：给定条件，返回最便宜的达标方案。不依赖 DOM，便于单独验证。
+  function recommend(opts) {
+    const o = opts || currentOpts();
+    const wIn = o.wIn || 4, wOut = o.wOut || 1;
+    const pool = D.models.filter(m =>
+      m.score != null &&
+      m.score >= (o.minScore || 0) &&
+      (!o.region || o.region === "不限" || m.region === o.region)
+    );
+    if (!pool.length) {
+      // 空结果时找出该地区的能力天花板，让用户知道门槛该降到多少
+      const regionPool = D.models.filter(m =>
+        m.score != null &&
+        (!o.region || o.region === "不限" || m.region === o.region)
+      );
+      const ceiling = regionPool.length
+        ? regionPool.reduce((a, b) => (b.score > a.score ? b : a), regionPool[0])
+        : null;
+      return { n: 0, opts: o, ceiling };
+    }
+
+    const priceOf = m => (wIn * m.usd_in + wOut * m.usd_out) / (wIn + wOut);
+    const rows = pool.map(m => ({
+      id: m.id, name: m.name, vendor: m.vendor, region: m.region, tier: m.tier,
+      score: m.score,
+      unit: priceOf(m),
+      cpp: priceOf(m) / m.score,
+      monthly: priceOf(m) * (o.volume || 50)
+    })).sort((a, b) => a.unit - b.unit);
+
+    const strongest = rows.reduce((a, b) => (b.score > a.score ? b : a), rows[0]);
+    return { n: pool.length, opts: o, best: rows[0], top: rows.slice(0, 3), strongest };
+  }
+
+  const usd0 = x => "$" + Math.round(x).toLocaleString("en-US");
+  const shortName = n => String(n).replace(/^[^:]+:\s*/, "");
+
+  function renderCalc() {
+    const out = $("#calc-out");
+    if (!out) return;
+    const r = recommend(currentOpts());
+
+    if (!r.n) {
+      const c = r.ceiling;
+      const where = r.opts.region === "不限" ? "" : r.opts.region;
+      out.innerHTML = `<div class="co-head">没有满足这个条件的模型。</div>
+        <div class="co-note">${where ? where + "厂商" : "当前样本"}里达到智能分
+          ${r.opts.minScore} 的模型数为 0。` +
+        (c ? `这里目前的天花板是 <b style="color:#e9edfb">${shortName(c.name)}</b>
+          （${c.vendor}，智能分 ${c.score.toFixed(1)}）——把门槛降到 ${Math.floor(c.score)} 就能出方案。`
+           : "") +
+        `</div>
+        <div class="co-note">这不是页面出错，是样本里确实没有更强的选项。
+          我们在方法论文档里说明了国内模型在旗舰档的缺口，没有用调低阈值的方式掩盖它。</div>`;
+      return;
+    }
+
+    const b = r.best, s = r.strongest;
+    const cny = Math.round(b.monthly * FX).toLocaleString("zh-CN");
+    const ratio = b.monthly > 0 ? s.monthly / b.monthly : 0;
+
+    out.innerHTML = `
+      <div class="co-head">符合条件的模型 <b>${r.n}</b> 个，这是最便宜的一个</div>
+      <div class="co-pick">
+        <div class="co-name">${shortName(b.name)}</div>
+        <div class="co-meta">${b.vendor} · ${b.tier} · 智能分 ${b.score.toFixed(1)} · 单价 ${usd4(b.unit)}/百万 token</div>
+        <div class="co-cost">
+          <span class="co-num">${usd0(b.monthly)}</span>
+          <span class="co-unit">/ 月（≈ ¥${cny}）</span>
+        </div>
+        <div class="co-note">按 ${r.opts.volume} 百万 token/月、输入:输出 = ${r.opts.ratio} 估算。
+          挂牌价口径，未含企业折扣，也不含 L3 的吞吐与重试损耗。</div>
+      </div>
+      <div class="co-note" style="margin-top:12px">
+        同条件下最强的是 <b style="color:#e9edfb">${shortName(s.name)}</b>（智能分 ${s.score.toFixed(1)}），
+        月成本 ${usd0(s.monthly)}，<b style="color:#fdba74">贵 ${ratio.toFixed(1)} 倍</b>。
+      </div>
+      <div class="co-alt">
+        <table>
+          <thead><tr><th>最便宜的前 3 个</th><th>智能分</th><th>单价</th><th>月成本</th></tr></thead>
+          <tbody>${r.top.map(t => `<tr>
+            <td>${shortName(t.name)}</td>
+            <td>${t.score.toFixed(1)}</td>
+            <td>${usd4(t.unit)}</td>
+            <td>${usd0(t.monthly)}</td>
+          </tr>`).join("")}</tbody>
+        </table>
+      </div>`;
+  }
+
+  ["#c-score", "#c-region", "#c-vol", "#c-ratio"].forEach(sel => {
+    const el = document.querySelector(sel);
+    if (el && typeof el.addEventListener === "function") {
+      el.addEventListener("change", () => { renderCalc(); translateDom(); });
+      el.addEventListener("input", () => { renderCalc(); translateDom(); });
+    }
+  });
+  renderCalc();
+  translateDom();
+  // 暴露纯函数，方便脚本化验证
+  if (typeof window !== "undefined") window.__TECI_CALC = recommend;
+
+  // ---------- 星场 ----------
+  (function starfield(){
+    const cv = document.querySelector('#stars');
+    if(!cv || typeof cv.getContext !== 'function') return;
+
+    let seed = 20261124;
+    const rnd = () => (seed = (seed * 1664525 + 1013904223) % 4294967296) / 4294967296;
+
+    function draw(){
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const w = cv.clientWidth || window.innerWidth;
+      const h = cv.clientHeight || window.innerHeight;
+      cv.width = Math.floor(w * dpr);
+      cv.height = Math.floor(h * dpr);
+      const ctx = cv.getContext('2d');
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, w, h);
+
+      seed = 20261124;
+      const n = Math.round((w * h) / 5200);
+      for(let i=0;i<n;i++){
+        const x = rnd()*w, y = rnd()*h;
+        const r = 0.3 + rnd()*1.15;
+        const a = 0.10 + rnd()*0.55;
+        const t = rnd();
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI*2);
+        ctx.fillStyle = t > 0.88 ? `rgba(186,220,255,${a})`
+                      : t > 0.76 ? `rgba(233,205,255,${a})`
+                      : `rgba(255,255,255,${a})`;
+        ctx.fill();
+      }
+
+      // 少量亮星，带柔和光晕
+      for(let i=0;i<7;i++){
+        const x = rnd()*w, y = rnd()*h, r = 1.4 + rnd()*1.2;
+        const g = ctx.createRadialGradient(x, y, 0, x, y, r*8);
+        g.addColorStop(0, 'rgba(224,236,255,.55)');
+        g.addColorStop(.4, 'rgba(200,180,255,.14)');
+        g.addColorStop(1, 'rgba(200,180,255,0)');
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.arc(x, y, r*8, 0, Math.PI*2);
+        ctx.fill();
+      }
+    }
+
+    draw();
+    if(typeof window.addEventListener === 'function'){
+      let t;
+      window.addEventListener('resize', () => { clearTimeout(t); t = setTimeout(draw, 180); });
+    }
+  })();
+})();
+</script>
+</body>
+</html>

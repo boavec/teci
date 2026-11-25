@@ -1,0 +1,86 @@
+# 每天抓一次价格、重算指数、部署到 GitHub Pages。
+#
+# 三点设计说明：
+#   1. 只把 data/*.csv 提交回仓库。原始快照 data/raw/ 有 ~1MB/天，
+#      提交一年就是 300MB+，所以它在 .gitignore 里。真正的长期资产是
+#      teci_history.csv（每行一天，约 0.2KB）和 teci_snapshot.csv（当天截面）。
+#   2. 抓取失败不中断：continue-on-error 让构建继续用上一次的快照，
+#      线上至少还是上一版数据，不会因为一次网络抖动变成空白页。
+#   3. 校验不过不部署：test_site.js / check_contrast.py 任何一个失败，
+#      后面部署步骤就不会执行，线上保留上一个可用版本。
+#
+# 首次使用需要在仓库 Settings → Pages → Source 选择 "GitHub Actions"
+# （不是 "Deploy from a branch"）。
+
+name: 每日更新并部署
+
+on:
+  schedule:
+    # UTC 01:10 = 北京时间 09:10。GitHub 的定时任务可能延迟几分钟到几十分钟。
+    # 仓库只要有提交（本工作流每天都提交数据）就不会因为长期不活跃被停掉。
+    - cron: "10 1 * * *"
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+permissions:
+  contents: write # 把数据提交回去，历史序列才能累积
+  pages: write
+  id-token: write
+
+concurrency:
+  group: teci-pages
+  cancel-in-progress: false
+
+jobs:
+  update-and-deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+
+    steps:
+      - name: 检出仓库
+        uses: actions/checkout@v4
+
+      - name: 准备 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: 抓取最新价格
+        # 失败也继续，用已有快照重建
+        continue-on-error: true
+        run: python scripts/fetch_models.py
+
+      - name: 计算指数并生成网页
+        run: python scripts/build_teci.py
+
+      - name: 校验（不通过就不部署）
+        run: |
+          node scripts/test_site.js
+          python scripts/check_contrast.py
+
+      - name: 提交数据变化
+        run: |
+          git config user.name "teci-bot"
+          git config user.email "teci-bot@users.noreply.github.com"
+          git add data
+          if git diff --cached --quiet; then
+            echo "数据无变化，跳过提交"
+          else
+            git commit -m "data: $(date -u +%F) 自动更新"
+            git push
+          fi
+
+      - name: 配置 Pages
+        uses: actions/configure-pages@v5
+
+      - name: 上传站点产物
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: publish
+
+      - name: 部署到 GitHub Pages
+        id: deploy
+        uses: actions/deploy-pages@v4
