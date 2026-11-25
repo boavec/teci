@@ -300,9 +300,64 @@ def region_tier_matrix(rows: list[dict]) -> dict:
     return matrix
 
 
+def load_rows_from_snapshot() -> tuple[list[dict], str]:
+    """没有原始快照时，用已提交的截面 CSV 重建样本。
+
+    返回 (rows, as_of)。as_of 取历史序列最后一天，让页面如实显示数据陈旧程度。
+    """
+    snap = DATA_DIR / "teci_snapshot.csv"
+    if not snap.exists():
+        raise SystemExit("既没有原始快照，也没有 data/teci_snapshot.csv，无法构建")
+
+    def num(v, cast=float):
+        return cast(v) if v not in ("", "None", None) else None
+
+    rows: list[dict] = []
+    with snap.open(encoding="utf-8-sig") as f:
+        for r in csv.DictReader(f):
+            rows.append(
+                {
+                    "id": r["id"],
+                    "name": r["name"],
+                    "vendor": r["vendor"],
+                    "region": r["region"],
+                    "tier": r["tier"],
+                    "usd_in": float(r["usd_in"]),
+                    "usd_out": float(r["usd_out"]),
+                    "blended": float(r["blended"]),
+                    "score": num(r.get("score")),
+                    "cost_per_point": num(r.get("cost_per_point")),
+                    "context": num(r.get("context"), int),
+                    "listed": r.get("listed", ""),
+                }
+            )
+
+    as_of = date.today().isoformat()
+    hist = DATA_DIR / "teci_history.csv"
+    if hist.exists():
+        with hist.open(encoding="utf-8-sig") as f:
+            days = [x["as_of"] for x in csv.DictReader(f) if x.get("as_of")]
+        if days:
+            as_of = max(days)
+    return rows, as_of
+
+
 def build() -> None:
-    raw, raw_path = load_latest_raw()
-    rows = clean(raw["data"])
+    degraded = False
+    raw_total = 0
+    raw_name = "（无原始快照，使用已提交的截面数据）"
+    try:
+        raw, raw_path = load_latest_raw()
+        rows = clean(raw["data"])
+        raw_total = len(raw["data"])
+        raw_name = raw_path.name
+        as_of = date.today().isoformat()
+    except SystemExit as e:
+        print(f"⚠ 抓取不可用：{e}")
+        print("  改用 data/teci_snapshot.csv 重建，页面会显示数据陈旧天数")
+        rows, as_of = load_rows_from_snapshot()
+        degraded = True
+
     if not rows:
         raise SystemExit("清洗后没有可用模型，检查原始快照")
 
@@ -332,7 +387,7 @@ def build() -> None:
         }
 
     summary = {
-        "as_of": date.today().isoformat(),
+        "as_of": as_of,
         "n_models": len(rows),
         "n_scored": len(scored),
         "median_blended_all": median([r["blended"] for r in rows]),
@@ -352,8 +407,9 @@ def build() -> None:
             "weights": {"input": W_IN, "output": W_OUT},
             "tiers": {"flagship_min": TIER_FLAGSHIP_MIN, "mid_min": TIER_MID_MIN},
             "source": "OpenRouter /api/v1/models",
-            "raw_file": raw_path.name,
-            "raw_total": len(raw["data"]),
+            "raw_file": raw_name,
+            "raw_total": raw_total,
+            "degraded": degraded,
             "listing_window_months": LISTING_WINDOW_MONTHS,
             "levels_enabled": ["L1", "L2"],
             "levels_disabled": ["L3"],
@@ -455,7 +511,7 @@ def build() -> None:
     else:
         standalone_note = "警告：index.html 里没找到数据脚本占位，单文件版未生成"
 
-    print(f"原始快照 : {raw_path.name}（{payload['meta']['raw_total']} 个模型）")
+    print(f"原始快照 : {raw_name}（{raw_total} 个模型）{'—— 降级模式' if degraded else ''}")
     print(f"纳入口径 : 最近 {LISTING_WINDOW_MONTHS} 个月上市 · 剔除免费档/批量档/已下线")
     print(f"清洗后   : {len(rows)} 个模型，其中 {len(scored)} 个有智能分")
     print(f"L1 全样本中位混合价 : ${summary['median_blended_all']}/百万 token")
